@@ -1,429 +1,202 @@
 /**
- * Context Injection - Enhances AI prompts with memory context
+ * Context Injection - Build enhanced context with learnings
  *
- * KEY INNOVATION: Actually use captured learnings by injecting them into prompts.
- *
- * This module builds enhanced context that includes:
- * - User identity (from identity.yaml)
- * - Relevant past learnings (keyword-matched)
- * - Current work context
- * - Recent check-in state
- *
- * The result is AI interactions that learn from past experiences.
+ * The key innovation: automatically inject relevant learnings into AI context.
+ * This makes past learnings actually useful by surfacing them at decision time.
  */
 
-import { stringify } from 'yaml';
-import {
-	type TaskType,
-	getActiveChallenges,
-	getActiveGoals,
-	getActiveProjects,
-	loadIdentity,
-} from '../context-loader';
+import { loadIdentity } from '../context-loader';
 import { retrieveRelevantLearnings } from './learning-manager';
-import { stateManager } from './state-manager';
 import { workManager } from './work-manager';
 
-/**
- * Context options for building enhanced context
- */
-export interface ContextOptions {
-	/** Maximum learnings to include */
-	maxLearnings?: number;
-	/** Include current work context */
-	includeWork?: boolean;
-	/** Include check-in state */
-	includeCheckinState?: boolean;
-	/** Include full goals list */
-	includeFullGoals?: boolean;
-	/** Custom context additions */
-	customContext?: Record<string, unknown>;
-}
+// ============================================
+// Types
+// ============================================
+
+export type TaskType = 'chat' | 'checkin' | 'news' | 'research' | 'project';
+
+// ============================================
+// Context Building
+// ============================================
 
 /**
- * Enhanced context result
- */
-export interface EnhancedContext {
-	/** The formatted context string */
-	text: string;
-	/** Metadata about what was included */
-	metadata: {
-		learningsIncluded: number;
-		hasCurrentWork: boolean;
-		hasCheckinState: boolean;
-		identityLoaded: boolean;
-	};
-}
-
-/**
- * Build enhanced context for AI interactions
+ * Build enhanced context with learnings for AI interactions
  *
- * This is the main function that combines:
- * - Identity context (name, preferences, etc.)
- * - Task-specific context (goals for check-in, interests for news, etc.)
- * - Relevant learnings from past interactions
- * - Current work context
- *
- * @param prompt - The current user prompt/task
- * @param taskType - Type of task (chat, checkin, news, research, project)
- * @param options - Additional options
+ * This is where the magic happens - we take the user's identity,
+ * find relevant past learnings, and inject them into the context.
  */
-export async function buildEnhancedContext(
-	prompt: string,
-	taskType: TaskType = 'chat',
-	options: ContextOptions = {}
-): Promise<EnhancedContext> {
-	const {
-		maxLearnings = 3,
-		includeWork = true,
-		includeCheckinState = true,
-		includeFullGoals = false,
-		customContext = {},
-	} = options;
+export async function buildEnhancedContext(prompt: string, taskType: TaskType): Promise<string> {
+	// Get identity context
+	const identity = await loadIdentity();
 
-	const metadata = {
-		learningsIncluded: 0,
-		hasCurrentWork: false,
-		hasCheckinState: false,
-		identityLoaded: false,
-	};
+	// Get relevant past learnings
+	const learnings = await retrieveRelevantLearnings(prompt, 3);
 
+	// Get current work context
+	const currentWork = await workManager.getCurrentWork();
+
+	// Build the context string
 	const sections: string[] = [];
 
-	// ============================================
-	// Identity Context
-	// ============================================
+	// User context section
+	sections.push('<user_context>');
+	sections.push(`Name: ${identity.about.name}`);
+	sections.push(
+		`Communication: ${identity.preferences.communication.style}, ${identity.preferences.communication.length}`
+	);
 
-	try {
-		const identity = await loadIdentity();
-		metadata.identityLoaded = true;
-
-		// Base context - always included
-		const baseContext: Record<string, unknown> = {
-			name: identity.about.name,
-			timezone: identity.about.timezone,
-			communication: identity.preferences.communication,
-		};
-
-		// Task-specific context
-		switch (taskType) {
-			case 'chat':
-				baseContext.background = identity.about.background;
-				baseContext.expertise = identity.about.expertise;
-				baseContext.recent_lessons = identity.learned.slice(-3);
-				break;
-
-			case 'checkin':
-				if (includeFullGoals) {
-					baseContext.goals = identity.goals;
-				} else {
-					const activeGoals = await getActiveGoals();
-					baseContext.active_goals = activeGoals.slice(0, 5).map((g) => ({
-						title: g.title,
-						progress: `${Math.round(g.progress * 100)}%`,
-						deadline: g.deadline,
-					}));
-				}
-				baseContext.active_projects = (await getActiveProjects()).map((p) => p.name);
-				baseContext.challenges = (await getActiveChallenges()).map((c) => c.title);
-				break;
-
-			case 'news':
-				baseContext.interests = identity.interests;
-				baseContext.news_preferences = identity.preferences.news;
-				break;
-
-			case 'research':
-				baseContext.expertise = identity.about.expertise;
-				baseContext.high_priority_interests = identity.interests.high_priority;
-				break;
-
-			case 'project':
-				baseContext.tech_preferences = identity.preferences.tech_stack;
-				baseContext.active_projects = (await getActiveProjects()).slice(0, 3);
-				break;
-		}
-
-		// Add custom context
-		Object.assign(baseContext, customContext);
-
-		sections.push(`<user_context>\n${stringify(baseContext)}</user_context>`);
-	} catch {
-		// Identity not loaded - continue without it
-		sections.push('<!-- User identity not available -->');
-	}
-
-	// ============================================
-	// Relevant Learnings
-	// ============================================
-
-	if (maxLearnings > 0) {
-		const learnings = await retrieveRelevantLearnings(prompt, maxLearnings);
-		metadata.learningsIncluded = learnings.length;
-
-		if (learnings.length > 0) {
-			const learningLines = learnings.map((l) => {
-				const prefix = l.type === 'failure' ? 'AVOID' : l.type === 'success' ? 'REPLICATE' : 'NOTE';
-				return `- [${prefix}] ${l.lesson}`;
-			});
-
-			sections.push(
-				`<relevant_learnings>\nFrom past interactions, remember:\n${learningLines.join('\n')}\n</relevant_learnings>`
+	// Add task-specific context
+	switch (taskType) {
+		case 'checkin': {
+			const activeGoals = [...identity.goals.short_term, ...identity.goals.medium_term].filter(
+				(g) => g.progress < 1
 			);
-		}
-	}
 
-	// ============================================
-	// Current Work Context
-	// ============================================
-
-	if (includeWork) {
-		const currentWork = await workManager.getCurrentWork();
-		if (currentWork) {
-			metadata.hasCurrentWork = true;
-
-			const workContext = {
-				work_id: currentWork.id,
-				started: currentWork.started,
-				items_so_far: currentWork.item_count,
-			};
-
-			sections.push(`<current_work>\n${stringify(workContext)}</current_work>`);
-		}
-	}
-
-	// ============================================
-	// Check-in State
-	// ============================================
-
-	if (includeCheckinState) {
-		const state = await stateManager.getState();
-		if (state.last_checkin) {
-			metadata.hasCheckinState = true;
-
-			const lastCheckin = await stateManager.getLastCheckin(state.last_checkin.type);
-			if (lastCheckin) {
-				const checkinContext = {
-					last_checkin_type: lastCheckin.type,
-					when: new Date(lastCheckin.timestamp).toLocaleString(),
-					mood: lastCheckin.mood,
-					action_items: lastCheckin.action_items?.slice(0, 3),
-				};
-
-				sections.push(`<recent_checkin>\n${stringify(checkinContext)}</recent_checkin>`);
+			sections.push('');
+			sections.push('Active Goals:');
+			for (const goal of activeGoals.slice(0, 5)) {
+				sections.push(`- ${goal.title} (${Math.round(goal.progress * 100)}%)`);
 			}
+
+			const activeProjects = identity.projects.filter((p) => p.status === 'active');
+			if (activeProjects.length > 0) {
+				sections.push('');
+				sections.push('Active Projects:');
+				for (const project of activeProjects) {
+					sections.push(`- ${project.name}`);
+				}
+			}
+			break;
+		}
+
+		case 'news': {
+			sections.push('');
+			sections.push('Interests:');
+			for (const interest of identity.interests.high_priority) {
+				sections.push(`- ${interest.topic}`);
+			}
+
+			if (identity.preferences.news) {
+				sections.push('');
+				sections.push(`News Preferences: Format=${identity.preferences.news.format}`);
+			}
+			break;
+		}
+
+		case 'research': {
+			sections.push('');
+			sections.push('Expertise:');
+			for (const exp of identity.about.expertise.slice(0, 5)) {
+				sections.push(`- ${exp}`);
+			}
+
+			sections.push('');
+			sections.push('High Priority Interests:');
+			for (const interest of identity.interests.high_priority) {
+				sections.push(`- ${interest.topic}`);
+			}
+			break;
+		}
+
+		case 'project': {
+			if (identity.preferences.tech_stack) {
+				sections.push('');
+				sections.push('Preferred Tech Stack:');
+				const stack = identity.preferences.tech_stack;
+				if (stack.languages && stack.languages.length > 0) {
+					sections.push(`  Languages: ${stack.languages.join(', ')}`);
+				}
+				if (stack.frameworks && stack.frameworks.length > 0) {
+					sections.push(`  Frameworks: ${stack.frameworks.join(', ')}`);
+				}
+				if (stack.package_manager) {
+					sections.push(`  Package Manager: ${stack.package_manager}`);
+				}
+			}
+
+			const activeProjects = identity.projects.filter((p) => p.status === 'active');
+			if (activeProjects.length > 0) {
+				sections.push('');
+				sections.push('Active Projects:');
+				for (const project of activeProjects) {
+					sections.push(`- ${project.name}`);
+				}
+			}
+			break;
+		}
+		default: {
+			// Include background for general chat
+			if (identity.about.background) {
+				sections.push('');
+				sections.push(`Background: ${identity.about.background}`);
+			}
+
+			// Include recent lessons
+			const recentLessons = identity.learned.slice(-3);
+			if (recentLessons.length > 0) {
+				sections.push('');
+				sections.push('Recent Lessons:');
+				for (const lesson of recentLessons) {
+					sections.push(`- ${lesson.lesson}`);
+				}
+			}
+			break;
 		}
 	}
 
-	// ============================================
-	// Build Final Context
-	// ============================================
+	sections.push('</user_context>');
 
-	const text = sections.join('\n\n');
+	// Add learnings section if we have any
+	if (learnings.length > 0) {
+		sections.push('');
+		sections.push('<relevant_learnings>');
+		sections.push('From past interactions, remember:');
+		for (const learning of learnings) {
+			sections.push(`- ${learning.lesson}`);
+		}
+		sections.push('</relevant_learnings>');
+	}
 
-	return { text, metadata };
+	// Add current work context if any
+	if (currentWork) {
+		sections.push('');
+		sections.push('<current_work>');
+		sections.push(`Continuing work: ${currentWork.id}`);
+		sections.push('</current_work>');
+	}
+
+	return sections.join('\n');
 }
 
 /**
- * Format context for system prompt injection
- *
- * Wraps the enhanced context with instructions for the AI.
+ * Build a system prompt with user context
  */
-export async function formatContextForSystemPrompt(
-	prompt: string,
-	taskType: TaskType = 'chat',
-	options: ContextOptions = {}
-): Promise<string> {
-	const { text, metadata } = await buildEnhancedContext(prompt, taskType, options);
+export async function buildSystemPrompt(taskType: TaskType, basePrompt?: string): Promise<string> {
+	const identity = await loadIdentity();
+	const context = await buildEnhancedContext('', taskType);
 
-	const instructions: string[] = [];
+	const systemPrompt = basePrompt || 'You are a helpful AI assistant.';
 
-	if (metadata.identityLoaded) {
-		instructions.push('Use the user context to personalize your response.');
-		instructions.push('Reference the user by name when appropriate.');
-		instructions.push('Respect their communication preferences.');
-	}
+	return `${systemPrompt}
 
-	if (metadata.learningsIncluded > 0) {
-		instructions.push(
-			'Apply the relevant learnings - avoid past mistakes and replicate successful patterns.'
-		);
-	}
+${context}
 
-	if (metadata.hasCurrentWork) {
-		instructions.push('Acknowledge the ongoing work context when relevant.');
-	}
-
-	return `${text}
-
-${instructions.length > 0 ? `<instructions>\n${instructions.join('\n')}\n</instructions>` : ''}`;
+Use this context to personalize your response. Reference the user by name (${identity.about.name}).
+Align suggestions with their goals and interests.
+Respect their communication preferences (${identity.preferences.communication.style}, ${identity.preferences.communication.length}).
+`;
 }
 
 /**
- * Build minimal context for quick interactions
- *
- * Lighter version for trivial/quick tasks that don't need full context.
+ * Build a minimal context (for cost-sensitive calls)
  */
 export async function buildMinimalContext(): Promise<string> {
-	try {
-		const identity = await loadIdentity();
-		return `User: ${identity.about.name}
-Communication style: ${identity.preferences.communication.style}, ${identity.preferences.communication.length}`;
-	} catch {
-		return '';
-	}
+	const identity = await loadIdentity();
+
+	return `
+<user>
+Name: ${identity.about.name}
+Style: ${identity.preferences.communication.style}
+</user>
+`.trim();
 }
-
-/**
- * Build check-in specific context
- *
- * Enhanced context specifically for morning/evening/weekly check-ins.
- */
-export async function buildCheckinContext(
-	checkinType: 'morning' | 'evening' | 'weekly'
-): Promise<string> {
-	const sections: string[] = [];
-
-	try {
-		const identity = await loadIdentity();
-		const activeGoals = await getActiveGoals();
-		const activeProjects = await getActiveProjects();
-		const challenges = await getActiveChallenges();
-
-		// User info
-		sections.push(`Checking in with: ${identity.about.name}`);
-		sections.push(`Time zone: ${identity.about.timezone}`);
-		sections.push('');
-
-		// Goals
-		if (activeGoals.length > 0) {
-			sections.push('## Active Goals');
-			for (const goal of activeGoals.slice(0, 5)) {
-				const progress = Math.round(goal.progress * 100);
-				const deadline = goal.deadline ? ` (due: ${goal.deadline})` : '';
-				sections.push(`- ${goal.title}: ${progress}% complete${deadline}`);
-			}
-			sections.push('');
-		}
-
-		// Projects
-		if (activeProjects.length > 0) {
-			sections.push('## Active Projects');
-			for (const project of activeProjects.slice(0, 3)) {
-				sections.push(`- ${project.name}: ${project.description}`);
-				if (project.next_actions && project.next_actions.length > 0) {
-					sections.push(`  Next: ${project.next_actions[0]}`);
-				}
-			}
-			sections.push('');
-		}
-
-		// Challenges
-		if (challenges.length > 0) {
-			sections.push('## Current Challenges');
-			for (const challenge of challenges) {
-				sections.push(`- ${challenge.title}`);
-			}
-			sections.push('');
-		}
-
-		// Last check-in of same type
-		const lastCheckin = await stateManager.getLastCheckin(checkinType);
-		if (lastCheckin) {
-			const daysSince = Math.floor(
-				(Date.now() - new Date(lastCheckin.timestamp).getTime()) / (1000 * 60 * 60 * 24)
-			);
-			sections.push(`## Previous ${checkinType} check-in`);
-			sections.push(`${daysSince} day(s) ago`);
-			if (lastCheckin.action_items && lastCheckin.action_items.length > 0) {
-				sections.push('Action items from last time:');
-				for (const item of lastCheckin.action_items) {
-					sections.push(`- ${item}`);
-				}
-			}
-		}
-
-		// Type-specific additions
-		if (checkinType === 'morning') {
-			sections.push('');
-			sections.push('Focus areas for today: planning, prioritization, energy management');
-		} else if (checkinType === 'evening') {
-			sections.push('');
-			sections.push('Focus areas: reflection, accomplishments, tomorrow preparation');
-		} else if (checkinType === 'weekly') {
-			sections.push('');
-			sections.push('Focus areas: progress review, goal adjustment, pattern recognition');
-
-			// Get rating stats for the week
-			const stats = await (await import('./learning-manager')).learningManager.getRatingStats(7);
-			if (stats.total > 0) {
-				sections.push(
-					`Week stats: ${stats.total} interactions, avg rating ${stats.average.toFixed(1)}/10`
-				);
-			}
-		}
-	} catch {
-		sections.push('Unable to load full context. Proceeding with basic check-in.');
-	}
-
-	return sections.join('\n');
-}
-
-/**
- * Build research context
- *
- * Context specifically for research tasks, including interests and expertise.
- */
-export async function buildResearchContext(topic: string): Promise<string> {
-	const sections: string[] = [];
-
-	try {
-		const identity = await loadIdentity();
-
-		sections.push(`## Research Context for ${identity.about.name}`);
-		sections.push('');
-
-		// Expertise
-		if (identity.about.expertise.length > 0) {
-			sections.push(`Expertise areas: ${identity.about.expertise.join(', ')}`);
-		}
-
-		// Check if topic relates to interests
-		const allInterests = [
-			...identity.interests.high_priority,
-			...identity.interests.medium_priority,
-			...identity.interests.low_priority,
-		];
-
-		const relevantInterests = allInterests.filter(
-			(i) =>
-				topic.toLowerCase().includes(i.topic.toLowerCase()) ||
-				i.subtopics.some((s) => topic.toLowerCase().includes(s.toLowerCase()))
-		);
-
-		if (relevantInterests.length > 0) {
-			sections.push('');
-			sections.push('Relevant interests:');
-			for (const interest of relevantInterests) {
-				sections.push(`- ${interest.topic}: ${interest.subtopics.join(', ')}`);
-			}
-		}
-
-		// Related learnings
-		const learnings = await retrieveRelevantLearnings(topic, 3);
-		if (learnings.length > 0) {
-			sections.push('');
-			sections.push('Related learnings:');
-			for (const learning of learnings) {
-				sections.push(`- ${learning.lesson}`);
-			}
-		}
-	} catch {
-		sections.push('Research context unavailable.');
-	}
-
-	return sections.join('\n');
-}
-
-// Export default builder
-export default buildEnhancedContext;

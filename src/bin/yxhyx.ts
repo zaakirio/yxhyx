@@ -8,11 +8,17 @@
  */
 
 import { Command } from 'commander';
+import { colors } from '../lib/cli/formatting';
+
+import { chat, chatCommand } from '../commands/chat';
+import { checkinCommand } from '../commands/checkin';
 import { identityCommand } from '../commands/identity';
+// Import commands
 import { initCommand } from '../commands/init';
 import { memoryCommand } from '../commands/memory';
 import { newsCommand } from '../commands/news';
-import { colors } from '../lib/cli/formatting';
+import { statusCommand } from '../commands/status';
+import { learningManager } from '../lib/memory/learning-manager';
 
 const program = new Command();
 
@@ -65,6 +71,7 @@ program
 		console.log(`${colors.yellow}Check-in functionality coming in Phase 3.${colors.reset}`);
 	});
 
+// Phase 4: News & Research (Coming Soon)
 program
 	.command('status')
 	.description('Quick status overview')
@@ -126,71 +133,83 @@ ${colors.dim}Last updated: ${new Date(identity.last_updated).toLocaleString()}${
 		}
 	});
 
+// Cost command - quick access to cost tracking
 program
 	.command('cost')
 	.description('View API costs')
 	.option('-m, --month <YYYY-MM>', 'Specific month')
 	.option('-d, --detailed', 'Show breakdown by model')
 	.action(async (options) => {
-		try {
-			const { readFile } = await import('node:fs/promises');
-			const { existsSync } = await import('node:fs');
-			const costPath = `${process.env.HOME}/.yxhyx/memory/state/cost-tracking.json`;
+		// Delegate to memory cost subcommand
+		const { getMonthlyCost, getCostBreakdown, getProjectedMonthlyCost } = await import(
+			'../lib/memory/state-manager'
+		);
 
-			if (!existsSync(costPath)) {
-				console.log(
-					`\n${colors.yellow}No cost data yet. Costs are tracked when you use AI features.${colors.reset}\n`
-				);
-				return;
-			}
+		const month = options.month || new Date().toISOString().substring(0, 7);
+		const total = await getMonthlyCost(month);
 
-			const content = await readFile(costPath, 'utf-8');
-			const tracking = JSON.parse(content) as Record<string, number>;
+		console.log(`\n${colors.bold}API Costs for ${month}${colors.reset}`);
+		console.log('='.repeat(30));
+		console.log(`Total: $${total.toFixed(4)}`);
 
-			const month = options.month || new Date().toISOString().substring(0, 7);
-			const total = tracking[`${month}:total`] || 0;
+		if (options.detailed) {
+			const breakdown = await getCostBreakdown(month);
+			const models = Object.keys(breakdown);
 
-			console.log(`\n${colors.bold}API Costs for ${month}${colors.reset}`);
-			console.log('═'.repeat(30));
-			console.log(`Total: $${total.toFixed(4)}`);
-
-			if (options.detailed) {
+			if (models.length > 0) {
 				console.log('\nBreakdown by model:');
-				for (const [key, cost] of Object.entries(tracking)) {
-					if (key.startsWith(month) && !key.includes(':total')) {
-						const model = key.split(':')[1];
-						console.log(`  ${model}: $${cost.toFixed(4)}`);
-					}
+				for (const [model, cost] of Object.entries(breakdown)) {
+					console.log(`  ${model}: $${(cost as number).toFixed(4)}`);
 				}
 			}
-
-			// Projected
-			const today = new Date();
-			const dayOfMonth = today.getDate();
-			const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-			const projected = (total / dayOfMonth) * daysInMonth;
-
-			console.log(`\nProjected monthly: $${projected.toFixed(2)}`);
-			console.log('');
-		} catch (err) {
-			console.error(
-				`${colors.red}Error: ${err instanceof Error ? err.message : err}${colors.reset}`
-			);
 		}
+
+		const projected = await getProjectedMonthlyCost();
+		console.log(`\nProjected monthly: $${projected.toFixed(2)}`);
+		console.log('');
 	});
 
 // ============================================
-// Default Action - Show Help or Chat
+// Default Action - Chat or Help
 // ============================================
 
-program.arguments('[message...]').action(async (message) => {
+program.arguments('[message...]').action(async (message: string[] | undefined) => {
 	if (message && message.length > 0) {
-		// Future: Treat as chat message
-		console.log(`${colors.yellow}Chat functionality coming soon.${colors.reset}`);
-		console.log(`Your message: "${message.join(' ')}"`);
+		const fullMessage = message.join(' ');
+
+		// Check if it's a rating
+		const rating = learningManager.parseExplicitRating(fullMessage);
+		if (rating) {
+			await learningManager.captureRating({
+				id: `rating-${Date.now()}`,
+				timestamp: new Date().toISOString(),
+				rating: rating.rating,
+				source: 'explicit',
+				comment: rating.comment,
+			});
+			console.log(
+				`\n${colors.green}Rated: ${rating.rating}/10${rating.comment ? ` - ${rating.comment}` : ''}${colors.reset}\n`
+			);
+			return;
+		}
+
+		// Otherwise, treat as chat message
+		await chat(fullMessage);
 	} else {
 		program.help();
 	}
+});
+
+// ============================================
+// Error Handling
+// ============================================
+
+program.configureOutput({
+	writeErr: (str) => {
+		// Remove 'error: ' prefix and colorize
+		const message = str.replace(/^error:\s*/i, '');
+		process.stderr.write(`${colors.red}Error: ${message}${colors.reset}`);
+	},
 });
 
 // ============================================

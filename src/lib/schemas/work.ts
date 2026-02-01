@@ -1,235 +1,144 @@
 /**
- * Work Schema - Zod schema for work/task tracking
+ * Work Tracking Schema - Track work items with effort-based complexity
  *
- * Tracks discrete units of work with effort-based complexity.
- * Inspired by PAI's WORK system but simplified for yxhyx.
- *
- * Key features:
- * - Effort-based structure (TRIVIAL/QUICK don't need full directories)
- * - Work-learning linkage via learning_id
- * - Cost tracking per work item
+ * Simple tasks get single JSONL files, complex tasks get directory structures.
+ * This approach reduces overhead for common quick interactions while providing
+ * full tracking for longer-running work.
  */
 
 import { z } from 'zod';
 
 /**
- * Effort levels determine storage structure
- * - TRIVIAL: No persistence (simple Q&A, greetings)
- * - QUICK: Single JSONL file (< 5 minute tasks)
- * - STANDARD: Directory with meta (5-30 minute tasks)
- * - THOROUGH: Full directory with artifacts (30+ minute tasks)
+ * Effort level determines tracking structure:
+ * - TRIVIAL: No persistence (greetings, yes/no)
+ * - QUICK: Single JSONL file (< 5 min tasks)
+ * - STANDARD: Directory with meta (5-30 min tasks)
+ * - THOROUGH: Full directory with artifacts (30+ min tasks)
  */
 export const EffortLevel = z.enum(['TRIVIAL', 'QUICK', 'STANDARD', 'THOROUGH']);
 export type EffortLevel = z.infer<typeof EffortLevel>;
 
 /**
- * Work status
+ * Work status - lifecycle of a work item
  */
-export const WorkStatus = z.enum(['active', 'completed', 'abandoned', 'paused']);
+export const WorkStatus = z.enum(['active', 'completed', 'abandoned']);
 export type WorkStatus = z.infer<typeof WorkStatus>;
 
 /**
- * Individual work item - represents a single interaction within a work session
+ * Individual work item within a work session
  */
 export const WorkItemSchema = z.object({
+	/** Unique identifier */
 	id: z.string(),
-	timestamp: z.string(),
-	prompt: z.string(),
-	response_summary: z.string().optional(),
-	effort: EffortLevel,
-	status: WorkStatus.default('active'),
 
-	// Quality tracking
+	/** When this item was created */
+	timestamp: z.string(),
+
+	/** The user's request/prompt */
+	prompt: z.string(),
+
+	/** Summary of AI response (for later retrieval) */
+	response_summary: z.string().optional(),
+
+	/** Effort classification */
+	effort: EffortLevel,
+
+	/** Current status */
+	status: WorkStatus,
+
+	/** User rating (1-10) if provided */
 	rating: z.number().min(1).max(10).optional(),
 
-	// Context
+	/** Files changed during this work item */
 	files_changed: z.array(z.string()).default([]),
+
+	/** Tools/commands used */
 	tools_used: z.array(z.string()).default([]),
 
-	// Cost tracking
+	/** Duration in seconds */
 	duration_seconds: z.number().optional(),
-	cost_usd: z.number().optional(),
-	model_used: z.string().optional(),
-	input_tokens: z.number().optional(),
-	output_tokens: z.number().optional(),
 
-	// Links
-	learning_id: z.string().optional(), // Link to generated learning
+	/** API cost in USD */
+	cost_usd: z.number().optional(),
+
+	/** Model used for this item */
+	model_used: z.string().optional(),
+
+	/** Link to generated learning if any */
+	learning_id: z.string().optional(),
 });
 
 export type WorkItem = z.infer<typeof WorkItemSchema>;
 
 /**
- * Work metadata - summary of a work session (for STANDARD/THOROUGH efforts)
+ * Work meta - metadata for complex work sessions (STANDARD+)
  */
 export const WorkMetaSchema = z.object({
+	/** Unique identifier for the work session */
 	id: z.string(),
+
+	/** Brief title/description */
 	title: z.string(),
-	description: z.string().optional(),
+
+	/** When work was created */
 	created: z.string(),
+
+	/** Last update time */
 	updated: z.string(),
+
+	/** Overall effort level */
 	effort: EffortLevel,
-	status: WorkStatus.default('active'),
 
-	// Aggregates
-	total_items: z.number().default(0),
+	/** Current status */
+	status: WorkStatus,
+
+	/** Number of items in this work session */
+	total_items: z.number(),
+
+	/** Total API cost across all items */
 	total_cost_usd: z.number().default(0),
-	total_duration_seconds: z.number().default(0),
-	total_input_tokens: z.number().default(0),
-	total_output_tokens: z.number().default(0),
 
-	// Context
+	/** Related goals from identity */
 	related_goals: z.array(z.string()).default([]),
-	related_projects: z.array(z.string()).default([]),
+
+	/** Categorization tags */
 	tags: z.array(z.string()).default([]),
-
-	// Quality
-	average_rating: z.number().optional(),
-
-	// Learning links
-	learning_ids: z.array(z.string()).default([]),
 });
 
 export type WorkMeta = z.infer<typeof WorkMetaSchema>;
 
 /**
- * Current work state - what we're working on right now
+ * Current work state - what's being worked on right now
  */
 export const CurrentWorkSchema = z.object({
+	/** Work session ID */
 	id: z.string(),
+
+	/** Effort level */
 	effort: EffortLevel,
+
+	/** When work started */
 	started: z.string(),
-	last_activity: z.string(),
-	item_count: z.number().default(0),
 });
 
 export type CurrentWork = z.infer<typeof CurrentWorkSchema>;
 
 /**
- * Create a new work item
- */
-export function createWorkItem(
-	workId: string,
-	prompt: string,
-	effort: EffortLevel,
-	options?: Partial<Omit<WorkItem, 'id' | 'timestamp' | 'prompt' | 'effort'>>
-): WorkItem {
-	return WorkItemSchema.parse({
-		id: `${workId}-${Date.now()}`,
-		timestamp: new Date().toISOString(),
-		prompt,
-		effort,
-		status: 'active',
-		files_changed: [],
-		tools_used: [],
-		...options,
-	});
-}
-
-/**
- * Create work metadata
- */
-export function createWorkMeta(
-	id: string,
-	title: string,
-	effort: EffortLevel,
-	options?: Partial<Omit<WorkMeta, 'id' | 'title' | 'created' | 'updated' | 'effort'>>
-): WorkMeta {
-	const now = new Date().toISOString();
-	return WorkMetaSchema.parse({
-		id,
-		title,
-		effort,
-		created: now,
-		updated: now,
-		status: 'active',
-		total_items: 0,
-		total_cost_usd: 0,
-		total_duration_seconds: 0,
-		total_input_tokens: 0,
-		total_output_tokens: 0,
-		related_goals: [],
-		related_projects: [],
-		tags: [],
-		learning_ids: [],
-		...options,
-	});
-}
-
-/**
- * Generate a work ID from a prompt
+ * Generate a work ID from timestamp and prompt
  */
 export function generateWorkId(prompt: string): string {
+	const timestamp = Date.now();
 	const slug = prompt
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, '-')
 		.replace(/^-|-$/g, '')
 		.substring(0, 50);
-
-	return `${Date.now().toString(36)}-${slug}`;
+	return `${timestamp}-${slug}`;
 }
 
 /**
- * Classify effort level from prompt and context
+ * Generate a work item ID
  */
-export function classifyEffort(
-	prompt: string,
-	options?: {
-		hasFiles?: boolean;
-		hasCode?: boolean;
-		isMultiStep?: boolean;
-		estimatedDuration?: number;
-	}
-): EffortLevel {
-	const promptLower = prompt.toLowerCase();
-
-	// TRIVIAL: Simple greetings, questions, single responses
-	const trivialPatterns = [
-		/^(hi|hello|hey|thanks|thank you|ok|okay|yes|no|sure|got it)/i,
-		/^what (is|are|does)/i,
-		/^(how|why|when|where|who) (is|are|does|do)/i,
-		/^can you (explain|tell|describe)/i,
-	];
-	if (trivialPatterns.some((p) => p.test(promptLower)) && !options?.hasCode && !options?.hasFiles) {
-		return 'TRIVIAL';
-	}
-
-	// Check for explicit duration hints
-	if (options?.estimatedDuration) {
-		if (options.estimatedDuration < 5 * 60) return 'QUICK';
-		if (options.estimatedDuration < 30 * 60) return 'STANDARD';
-		return 'THOROUGH';
-	}
-
-	// THOROUGH: Large tasks
-	const thoroughPatterns = [
-		/implement .* system/i,
-		/create .* application/i,
-		/build .* from scratch/i,
-		/refactor .* entire/i,
-		/migrate .* to/i,
-		/comprehensive .* analysis/i,
-		/full .* review/i,
-	];
-	if (thoroughPatterns.some((p) => p.test(promptLower)) || options?.isMultiStep) {
-		return 'THOROUGH';
-	}
-
-	// STANDARD: Code changes, file operations
-	const standardPatterns = [
-		/add .* feature/i,
-		/fix .* bug/i,
-		/update .* file/i,
-		/modify .* code/i,
-		/create .* function/i,
-		/write .* test/i,
-		/implement/i,
-		/refactor/i,
-	];
-	if (standardPatterns.some((p) => p.test(promptLower)) || options?.hasCode || options?.hasFiles) {
-		return 'STANDARD';
-	}
-
-	// QUICK: Default for most interactions
-	return 'QUICK';
+export function generateWorkItemId(workId: string): string {
+	return `${workId}-${Date.now()}`;
 }

@@ -51,12 +51,132 @@ export const initCommand = new Command('init')
 	.option('-q, --quick', 'Quick initialization with minimal prompts')
 	.action(async (options) => {
 		try {
-			// Check for API keys first
-			if (!hasApiKey()) {
-				console.log(`
-${colors.red}${colors.bold}Error: No API key configured${colors.reset}
+			// Check for API keys and OpenCode first
+			const hasKey = hasApiKey();
+			const openCodeStatus = await detectOpenCode();
+			const openCodeAvailable = openCodeStatus.installed || openCodeStatus.configExists;
+
+			if (!hasKey) {
+				if (openCodeAvailable) {
+					// OpenCode found - give user options
+					console.log(`
+${colors.yellow}${colors.bold}No API key configured${colors.reset}
+
+${colors.green}✓ OpenCode detected!${colors.reset} ${openCodeStatus.installed ? '(installed)' : '(config found)'}
+  You can use Yxhyx through OpenCode, which manages its own API keys.
+`);
+
+					const { apiKeyChoice } = await inquirer.prompt([
+						{
+							type: 'list',
+							name: 'apiKeyChoice',
+							message: 'How would you like to proceed?',
+							choices: [
+								{
+									name: 'Continue with OpenCode only (recommended)',
+									value: 'opencode_only',
+								},
+								{
+									name: 'Add an API key now for standalone Yxhyx use',
+									value: 'add_key',
+								},
+								{
+									name: 'Set up both (OpenCode + standalone API key)',
+									value: 'both',
+								},
+							],
+						},
+					]);
+
+					if (apiKeyChoice === 'add_key' || apiKeyChoice === 'both') {
+						const { provider } = await inquirer.prompt([
+							{
+								type: 'list',
+								name: 'provider',
+								message: 'Which API provider would you like to use?',
+								choices: [
+									{ name: 'Kimi (cheapest)', value: 'KIMI_API_KEY' },
+									{ name: 'OpenRouter (many models)', value: 'OPENROUTER_API_KEY' },
+									{ name: 'Anthropic (highest quality)', value: 'ANTHROPIC_API_KEY' },
+								],
+							},
+						]);
+
+						const { apiKey } = await inquirer.prompt([
+							{
+								type: 'password',
+								name: 'apiKey',
+								message: `Enter your ${provider.replace('_API_KEY', '')} API key:`,
+								mask: '*',
+								validate: (input: string) => input.trim().length > 0 || 'API key is required',
+							},
+						]);
+
+						// Set the environment variable for this session
+						process.env[provider] = apiKey.trim();
+
+						console.log(`
+${colors.green}✓ API key set for this session${colors.reset}
+
+${colors.yellow}To make this permanent, add to your shell profile (~/.zshrc or ~/.bashrc):${colors.reset}
+  ${colors.cyan}export ${provider}="${apiKey.trim().slice(0, 8)}...${apiKey.trim().slice(-4)}"${colors.reset}
+`);
+					}
+
+					// If opencode_only, we continue without requiring an API key
+					// The user will use Yxhyx through OpenCode
+				} else {
+					// No OpenCode and no API key - show error with option to add key
+					console.log(`
+${colors.red}${colors.bold}No API key configured${colors.reset}
 
 Yxhyx requires at least one AI provider API key to function.
+`);
+
+					const { addKeyNow } = await inquirer.prompt([
+						{
+							type: 'confirm',
+							name: 'addKeyNow',
+							message: 'Would you like to add an API key now?',
+							default: true,
+						},
+					]);
+
+					if (addKeyNow) {
+						const { provider } = await inquirer.prompt([
+							{
+								type: 'list',
+								name: 'provider',
+								message: 'Which API provider would you like to use?',
+								choices: [
+									{ name: 'Kimi (cheapest - recommended)', value: 'KIMI_API_KEY' },
+									{ name: 'OpenRouter (many models)', value: 'OPENROUTER_API_KEY' },
+									{ name: 'Anthropic (highest quality)', value: 'ANTHROPIC_API_KEY' },
+								],
+							},
+						]);
+
+						const { apiKey } = await inquirer.prompt([
+							{
+								type: 'password',
+								name: 'apiKey',
+								message: `Enter your ${provider.replace('_API_KEY', '')} API key:`,
+								mask: '*',
+								validate: (input: string) => input.trim().length > 0 || 'API key is required',
+							},
+						]);
+
+						// Set the environment variable for this session
+						process.env[provider] = apiKey.trim();
+
+						console.log(`
+${colors.green}✓ API key set for this session${colors.reset}
+
+${colors.yellow}To make this permanent, add to your shell profile (~/.zshrc or ~/.bashrc):${colors.reset}
+  ${colors.cyan}export ${provider}="${apiKey.trim().slice(0, 8)}...${apiKey.trim().slice(-4)}"${colors.reset}
+`);
+					} else {
+						console.log(`
 Please set one of the following environment variables:
 
   ${colors.cyan}export KIMI_API_KEY="your-key"${colors.reset}       # Recommended - cheapest
@@ -65,7 +185,9 @@ Please set one of the following environment variables:
 
 Add the export to your shell profile (~/.zshrc or ~/.bashrc) and restart your terminal.
 `);
-				process.exit(1);
+						process.exit(1);
+					}
+				}
 			}
 
 			// Check if already initialized
@@ -347,9 +469,9 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 			// OpenCode Integration
 			// ============================================
 			let openCodeSetUp = false;
-			const openCodeStatus = await detectOpenCode();
+			// Note: openCodeStatus was already detected at the start of init
 
-			if (openCodeStatus.installed || openCodeStatus.configExists) {
+			if (openCodeAvailable) {
 				// OpenCode is installed or has been configured - ask about integration
 				const { setupOpenCode } = await inquirer.prompt([
 					{

@@ -1,47 +1,68 @@
 {
-  "name": "yxhyx",
-  "version": "0.1.0",
-  "description": "Your personal AI assistant - knows you deeply, keeps you accountable, curates your world",
-  "type": "module",
-  "main": "./dist/bin/yxhyx.js",
-  "bin": {
-    "yxhyx": "./dist/bin/yxhyx.js"
-  },
-  "scripts": {
-    "build": "bun build ./src/bin/yxhyx.ts --outdir ./dist/bin --target node",
-    "dev": "bun run ./src/bin/yxhyx.ts",
-    "test": "vitest",
-    "test:watch": "vitest --watch",
-    "lint": "biome check ./src",
-    "lint:fix": "biome check --write ./src",
-    "format": "biome format --write ./src",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "commander": "^12.1.0",
-    "inquirer": "^9.3.7",
-    "yaml": "^2.6.1",
-    "zod": "^3.24.1",
-    "rss-parser": "^3.13.0"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@types/bun": "latest",
-    "@types/inquirer": "^9.0.7",
-    "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
-  },
-  "engines": {
-    "node": ">=20.0.0"
-  },
-  "keywords": [
-    "ai",
-    "personal-assistant",
-    "cli",
-    "productivity",
-    "goals",
-    "accountability"
-  ],
-  "author": "Zaakir",
-  "license": "MIT"
+	"name": "yxhyx",
+	"version": "0.1.0",
+	"description": "Your personal AI assistant - knows you deeply, keeps you accountable, curates your world",
+	"type": "module",
+	"main": "./dist/bin/yxhyx.js",
+	"bin": {
+		"yxhyx": "./dist/bin/yxhyx.js"
+	},
+	"files": ["dist", "README.md", "LICENSE"],
+	"scripts": {
+		"build": "bun build ./src/bin/yxhyx.ts --outdir ./dist/bin --target node --minify",
+		"build:dev": "bun build ./src/bin/yxhyx.ts --outdir ./dist/bin --target node",
+		"dev": "bun run ./src/bin/yxhyx.ts",
+		"start": "node ./dist/bin/yxhyx.js",
+		"test": "vitest",
+		"test:run": "vitest run",
+		"test:watch": "vitest --watch",
+		"test:coverage": "vitest run --coverage",
+		"lint": "biome check ./src ./tests",
+		"lint:fix": "biome check --write ./src ./tests",
+		"format": "biome format --write ./src ./tests",
+		"typecheck": "tsc --noEmit",
+		"prepublishOnly": "bun run lint && bun run test:run && bun run build",
+		"preversion": "bun run lint && bun run test:run"
+	},
+	"dependencies": {
+		"commander": "^12.1.0",
+		"inquirer": "^9.3.7",
+		"yaml": "^2.6.1",
+		"zod": "^3.24.1",
+		"rss-parser": "^3.13.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@types/bun": "latest",
+		"@types/inquirer": "^9.0.7",
+		"@vitest/coverage-v8": "^2.1.8",
+		"typescript": "^5.7.2",
+		"vitest": "^2.1.8"
+	},
+	"engines": {
+		"node": ">=20.0.0",
+		"bun": ">=1.0.0"
+	},
+	"keywords": [
+		"ai",
+		"personal-assistant",
+		"cli",
+		"productivity",
+		"goals",
+		"accountability",
+		"llm",
+		"chatgpt",
+		"claude",
+		"openai"
+	],
+	"author": "Zaakir",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/yourusername/yxhyx.git"
+	},
+	"bugs": {
+		"url": "https://github.com/yourusername/yxhyx/issues"
+	},
+	"homepage": "https://github.com/yourusername/yxhyx#readme"
 }

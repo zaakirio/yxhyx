@@ -89,6 +89,49 @@ export class LearningManager {
 	}
 
 	/**
+	 * Get rating statistics for a given time period
+	 *
+	 * @param days - Number of days to look back
+	 * @returns Statistics about ratings in the period
+	 */
+	async getRatingStats(days = 7): Promise<{
+		total: number;
+		average: number;
+		min: number;
+		max: number;
+		distribution: Record<number, number>;
+	}> {
+		const ratings = await this.getRecentRatings(days);
+
+		if (ratings.length === 0) {
+			return {
+				total: 0,
+				average: 0,
+				min: 0,
+				max: 0,
+				distribution: {},
+			};
+		}
+
+		const values = ratings.map((r) => r.rating);
+		const sum = values.reduce((acc, val) => acc + val, 0);
+
+		// Build distribution (count per rating value)
+		const distribution: Record<number, number> = {};
+		for (const rating of values) {
+			distribution[rating] = (distribution[rating] || 0) + 1;
+		}
+
+		return {
+			total: ratings.length,
+			average: sum / ratings.length,
+			min: Math.min(...values),
+			max: Math.max(...values),
+			distribution,
+		};
+	}
+
+	/**
 	 * CRITICAL: Retrieve relevant learnings for current context
 	 *
 	 * This is the key feature that makes learnings useful - we surface

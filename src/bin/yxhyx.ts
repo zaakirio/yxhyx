@@ -11,6 +11,7 @@ import { Command } from 'commander';
 import { identityCommand } from '../commands/identity';
 import { initCommand } from '../commands/init';
 import { memoryCommand } from '../commands/memory';
+import { newsCommand } from '../commands/news';
 import { colors } from '../lib/cli/formatting';
 
 const program = new Command();
@@ -26,11 +27,17 @@ program
 // Register Commands
 // ============================================
 
+// Phase 1: Foundation
 program.addCommand(initCommand);
 program.addCommand(identityCommand);
+
+// Phase 2: Memory
 program.addCommand(memoryCommand);
 
-// Placeholder commands for Phase 3+
+// Phase 4: Research & News
+program.addCommand(newsCommand);
+
+// Placeholder commands for Phase 3 (coming soon)
 program
 	.command('chat [message...]')
 	.description('Chat with Yxhyx')
@@ -42,6 +49,7 @@ program
 			console.log('For now, try:');
 			console.log(`  ${colors.cyan}yxhyx init${colors.reset} - Initialize Yxhyx`);
 			console.log(`  ${colors.cyan}yxhyx identity show${colors.reset} - View your identity`);
+			console.log(`  ${colors.cyan}yxhyx news${colors.reset} - Get personalized news`);
 			return;
 		}
 		console.log(
@@ -55,14 +63,6 @@ program
 	.option('-q, --quick', 'Quick check-in mode')
 	.action((_type, _options) => {
 		console.log(`${colors.yellow}Check-in functionality coming in Phase 3.${colors.reset}`);
-	});
-
-program
-	.command('news')
-	.description('Personalized news digest')
-	.option('-c, --category <name>', 'Specific category')
-	.action((_options) => {
-		console.log(`${colors.yellow}News functionality coming in Phase 4.${colors.reset}`);
 	});
 
 program

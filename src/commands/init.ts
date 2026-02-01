@@ -51,9 +51,68 @@ export const initCommand = new Command('init')
 	.option('-q, --quick', 'Quick initialization with minimal prompts')
 	.action(async (options) => {
 		try {
-			// Check for API keys first
+			// First check for OpenCode before requiring API keys
+			const openCodeStatus = await detectOpenCode();
+			const hasOpenCodeConfig = openCodeStatus.configExists || openCodeStatus.installed;
+			let userChoseOpenCode = false;
+
+			// Check for API keys
 			if (!hasApiKey()) {
-				console.log(`
+				if (hasOpenCodeConfig) {
+					// OpenCode is available - offer options
+					console.log(bold('\n Welcome to Yxhyx - Your Personal AI Assistant\n'));
+					console.log(info('✓ OpenCode configuration detected!'));
+					console.log(
+						info(
+							`  ${openCodeStatus.installed ? 'OpenCode binary found' : 'OpenCode config directory found'}\n`
+						)
+					);
+
+					console.log('You have two options to proceed:\n');
+					console.log('  1. Use OpenCode (no API key required)');
+					console.log('  2. Set up an API key for direct Yxhyx usage\n');
+
+					const { choice } = await inquirer.prompt([
+						{
+							type: 'list',
+							name: 'choice',
+							message: 'How would you like to proceed?',
+							choices: [
+								{ name: 'Use OpenCode (recommended if you have it)', value: 'opencode' },
+								{ name: 'Set up API key now', value: 'apikey' },
+								{ name: 'Exit and configure later', value: 'exit' },
+							],
+						},
+					]);
+
+					if (choice === 'exit') {
+						console.log(
+							`\nYou can run ${colors.cyan}yxhyx init${colors.reset} again after configuring.`
+						);
+						process.exit(0);
+					}
+
+					if (choice === 'apikey') {
+						console.log(`
+${colors.yellow}API Key Configuration Required${colors.reset}
+
+Yxhyx requires at least one AI provider API key to function.
+Please set one of the following environment variables:
+
+  ${colors.cyan}export KIMI_API_KEY="your-key"${colors.reset}       # Recommended - cheapest
+  ${colors.cyan}export OPENROUTER_API_KEY="your-key"${colors.reset} # Access to many models
+  ${colors.cyan}export ANTHROPIC_API_KEY="your-key"${colors.reset}  # Highest quality
+
+Add the export to your shell profile (~/.zshrc or ~/.bashrc) and restart your terminal.
+`);
+						process.exit(1);
+					}
+
+					// User chose OpenCode - mark it and continue
+					userChoseOpenCode = true;
+				} else {
+					// No OpenCode and no API key - show error
+					console.log(`
 ${colors.red}${colors.bold}Error: No API key configured${colors.reset}
 
 Yxhyx requires at least one AI provider API key to function.
@@ -65,7 +124,8 @@ Please set one of the following environment variables:
 
 Add the export to your shell profile (~/.zshrc or ~/.bashrc) and restart your terminal.
 `);
-				process.exit(1);
+					process.exit(1);
+				}
 			}
 
 			// Check if already initialized
@@ -79,9 +139,12 @@ Add the export to your shell profile (~/.zshrc or ~/.bashrc) and restart your te
 			}
 
 			const isQuick = options.quick;
-			const provider = getConfiguredProvider();
+			const provider = hasApiKey() ? getConfiguredProvider() : 'OpenCode';
 
-			console.log(bold('\n Welcome to Yxhyx - Your Personal AI Assistant\n'));
+			// Only show welcome if we haven't already (from OpenCode detection)
+			if (hasApiKey()) {
+				console.log(bold('\n Welcome to Yxhyx - Your Personal AI Assistant\n'));
+			}
 			console.log(info(`API Provider: ${provider}`));
 			console.log(
 				isQuick
@@ -347,10 +410,24 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 			// OpenCode Integration
 			// ============================================
 			let openCodeSetUp = false;
-			const openCodeStatus = await detectOpenCode();
 
-			if (openCodeStatus.installed || openCodeStatus.configExists) {
-				// OpenCode is installed or has been configured - ask about integration
+			if (userChoseOpenCode) {
+				// User explicitly chose to use OpenCode - set it up automatically
+				console.log(info('\n Setting up OpenCode integration...'));
+				const { backupPath, filesCreated } = await setupOpenCodeIntegration();
+
+				if (backupPath) {
+					console.log(info(` Existing config backed up to: ${backupPath}`));
+				}
+
+				console.log(success(' OpenCode integration configured!'));
+				console.log(info(` Created ${filesCreated.length} files:`));
+				console.log('   - ~/.config/opencode/AGENTS.md (global rules)');
+				console.log('   - ~/.config/opencode/opencode.json (config)');
+				console.log('   - ~/.config/opencode/skills/yxhyx-*/SKILL.md (4 skills)');
+				openCodeSetUp = true;
+			} else if (openCodeStatus.installed || openCodeStatus.configExists) {
+				// OpenCode is installed but user didn't explicitly choose it - ask
 				const { setupOpenCode } = await inquirer.prompt([
 					{
 						type: 'confirm',

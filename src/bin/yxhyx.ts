@@ -16,6 +16,7 @@ import { identityCommand } from '../commands/identity';
 // Import commands
 import { initCommand } from '../commands/init';
 import { memoryCommand } from '../commands/memory';
+import { newsCommand } from '../commands/news';
 import { statusCommand } from '../commands/status';
 import { learningManager } from '../lib/memory/learning-manager';
 
@@ -35,34 +36,101 @@ program
 // Phase 1: Foundation
 program.addCommand(initCommand);
 program.addCommand(identityCommand);
+
+// Phase 2: Memory
 program.addCommand(memoryCommand);
 
-// Phase 3: Core Skills
-program.addCommand(chatCommand);
-program.addCommand(checkinCommand);
-program.addCommand(statusCommand);
-program.addCommand(memoryCommand);
+// Phase 4: Research & News
+program.addCommand(newsCommand);
 
-// Phase 4: News & Research (Coming Soon)
+// Placeholder commands for Phase 3 (coming soon)
 program
-	.command('news')
-	.description('Personalized news digest')
-	.option('-c, --category <name>', 'Specific category')
-	.action(async (_options) => {
-		console.log(`${colors.yellow}News functionality coming in Phase 4.${colors.reset}`);
-		console.log('This will include:');
-		console.log('  - RSS feed aggregation');
-		console.log('  - AI-powered news digest');
-		console.log('  - Goal-relevant article matching');
+	.command('chat [message...]')
+	.description('Chat with Yxhyx')
+	.option('-m, --model <model>', 'Force specific model')
+	.option('-i, --interactive', 'Start interactive session')
+	.action((message, _options) => {
+		if (!message || message.length === 0) {
+			console.log(`${colors.yellow}Chat functionality coming in Phase 3.${colors.reset}`);
+			console.log('For now, try:');
+			console.log(`  ${colors.cyan}yxhyx init${colors.reset} - Initialize Yxhyx`);
+			console.log(`  ${colors.cyan}yxhyx identity show${colors.reset} - View your identity`);
+			console.log(`  ${colors.cyan}yxhyx news${colors.reset} - Get personalized news`);
+			return;
+		}
+		console.log(
+			`${colors.yellow}Chat with AI coming soon. Your message: "${message.join(' ')}"${colors.reset}`
+		);
 	});
 
 program
-	.command('research <query>')
-	.description('Research a topic')
-	.option('-d, --deep', 'Use multi-model deep research')
-	.action(async (query, _options) => {
-		console.log(`${colors.yellow}Research functionality coming in Phase 4.${colors.reset}`);
-		console.log(`Your query: "${query}"`);
+	.command('checkin [type]')
+	.description('Accountability check-ins (morning/evening/weekly)')
+	.option('-q, --quick', 'Quick check-in mode')
+	.action((_type, _options) => {
+		console.log(`${colors.yellow}Check-in functionality coming in Phase 3.${colors.reset}`);
+	});
+
+// Phase 4: News & Research (Coming Soon)
+program
+	.command('status')
+	.description('Quick status overview')
+	.action(async () => {
+		try {
+			const { loadIdentity, getActiveGoals, getActiveProjects } = await import(
+				'../lib/context-loader'
+			);
+			const { workManager } = await import('../lib/memory/work-manager');
+			const { learningManager } = await import('../lib/memory/learning-manager');
+			const { stateManager } = await import('../lib/memory/state-manager');
+
+			const identity = await loadIdentity();
+			const activeGoals = await getActiveGoals();
+			const activeProjects = await getActiveProjects();
+			const currentWork = await workManager.getCurrentWork();
+			const ratingStats = await learningManager.getRatingStats(7);
+			const monthlyCost = await stateManager.getMonthlyCost();
+			const lastCheckin = await stateManager.getLastCheckin();
+
+			console.log(`
+${colors.bold}═════════════════════════════════════════${colors.reset}
+${colors.bold}  YXHYX STATUS - ${identity.about.name}${colors.reset}
+${colors.bold}═════════════════════════════════════════${colors.reset}
+
+${colors.cyan}📋 GOALS${colors.reset}
+  Active: ${activeGoals.length}
+${activeGoals
+	.slice(0, 3)
+	.map((g) => `  • ${g.title} (${Math.round(g.progress * 100)}%)`)
+	.join('\n')}
+${activeGoals.length > 3 ? `  ... and ${activeGoals.length - 3} more` : ''}
+
+${colors.cyan}🚀 PROJECTS${colors.reset}
+  Active: ${activeProjects.length}
+${activeProjects.map((p) => `  • ${p.name}`).join('\n') || '  None'}
+
+${colors.cyan}🧠 MEMORY (7 days)${colors.reset}
+  Ratings: ${ratingStats.total} (avg: ${ratingStats.average.toFixed(1)}/10)
+  Current work: ${currentWork ? `${currentWork.id.substring(0, 30)}...` : 'None'}
+
+${colors.cyan}💰 COSTS${colors.reset}
+  This month: $${monthlyCost.toFixed(4)}
+
+${colors.cyan}✅ CHECK-INS${colors.reset}
+  Last: ${lastCheckin ? `${lastCheckin.type} (${new Date(lastCheckin.timestamp).toLocaleDateString()})` : 'None'}
+
+${colors.dim}─────────────────────────────────────────${colors.reset}
+${colors.dim}Last updated: ${new Date(identity.last_updated).toLocaleString()}${colors.reset}
+`);
+		} catch (err) {
+			if (err instanceof Error && err.message.includes('not initialized')) {
+				console.log(`\n${colors.yellow}Yxhyx not initialized. Run: yxhyx init${colors.reset}\n`);
+			} else {
+				console.error(
+					`${colors.red}Error: ${err instanceof Error ? err.message : err}${colors.reset}`
+				);
+			}
+		}
 	});
 
 // Cost command - quick access to cost tracking

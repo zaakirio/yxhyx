@@ -180,7 +180,7 @@ export const initCommand = new Command('init')
 			console.log(info(' Markdown views generated'));
 
 			// Initialize state manager
-			await stateManager.initialize();
+			await stateManager.initializeState();
 			console.log(info(' State manager initialized'));
 
 			// Create ratings file

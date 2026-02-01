@@ -10,14 +10,12 @@
 import { Command } from 'commander';
 import { colors } from '../lib/cli/formatting';
 
-import { chat, chatCommand } from '../commands/chat';
-import { checkinCommand } from '../commands/checkin';
+import { chat } from '../commands/chat';
 import { identityCommand } from '../commands/identity';
 // Import commands
 import { initCommand } from '../commands/init';
 import { memoryCommand } from '../commands/memory';
 import { newsCommand } from '../commands/news';
-import { statusCommand } from '../commands/status';
 import { learningManager } from '../lib/memory/learning-manager';
 
 const program = new Command();

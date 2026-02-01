@@ -280,3 +280,67 @@ export function getWeekStart(date: Date = new Date()): Date {
 	const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
 	return new Date(d.setDate(diff));
 }
+
+/**
+ * Get last check-in entry
+ */
+export async function getLastCheckin(): Promise<CheckinEntry | null> {
+	const history = await getCheckinHistory(1);
+	return history[0] || null;
+}
+
+// ============================================
+// StateManager Class (for singleton pattern)
+// ============================================
+
+/**
+ * StateManager provides a class-based interface to state operations
+ */
+export class StateManager {
+	async getState(): Promise<AppState> {
+		return getState();
+	}
+
+	async setState(updates: Partial<AppState>): Promise<void> {
+		return setState(updates);
+	}
+
+	async initializeState(): Promise<void> {
+		return initializeState();
+	}
+
+	async recordCheckin(type: CheckinType, data: Partial<CheckinEntry>): Promise<void> {
+		return recordCheckin(type, data);
+	}
+
+	async getCheckinHistory(limit = 30): Promise<CheckinEntry[]> {
+		return getCheckinHistory(limit);
+	}
+
+	async getLastCheckin(): Promise<CheckinEntry | null> {
+		return getLastCheckin();
+	}
+
+	async getCheckinStreak(): Promise<{ morning: number; evening: number }> {
+		return getCheckinStreak();
+	}
+
+	async recordCost(model: string, cost: number): Promise<void> {
+		return recordCost(model, cost);
+	}
+
+	async getMonthlyCost(month?: string): Promise<number> {
+		return getMonthlyCost(month);
+	}
+
+	async getCostBreakdown(month?: string): Promise<Record<string, number>> {
+		return getCostBreakdown(month);
+	}
+
+	async getProjectedMonthlyCost(): Promise<number> {
+		return getProjectedMonthlyCost();
+	}
+}
+
+// Export singleton instance
+export const stateManager = new StateManager();

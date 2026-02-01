@@ -15,6 +15,8 @@ export interface ComplexityIndicators {
 	outputLength: 'short' | 'medium' | 'long';
 	accuracyCritical: boolean;
 	securitySensitive: boolean;
+	needsMultipleSteps?: boolean;
+	requiresAccuracy?: boolean;
 }
 
 /**
@@ -162,4 +164,47 @@ export function getCostMultiplier(complexity: Complexity): number {
 		CRITICAL: 100,
 	};
 	return multipliers[complexity];
+}
+
+/**
+ * Get a numeric complexity score (0-100) for a prompt
+ *
+ * Useful for comparing relative complexity of tasks
+ */
+export function getComplexityScore(
+	task: string,
+	indicators?: Partial<ComplexityIndicators>
+): number {
+	let score = 0;
+
+	// Base score from length (0-30 points)
+	const length = task.length;
+	if (length < 20) score += 0;
+	else if (length < 100) score += 10;
+	else if (length < 500) score += 20;
+	else score += 30;
+
+	// Score from pattern complexity (0-40 points)
+	const complexity = classifyByPattern(task);
+	const complexityScores: Record<Complexity, number> = {
+		TRIVIAL: 0,
+		QUICK: 10,
+		STANDARD: 20,
+		COMPLEX: 30,
+		CRITICAL: 40,
+	};
+	score += complexityScores[complexity];
+
+	// Score from indicators (0-30 points)
+	if (indicators) {
+		if (indicators.requiresReasoning) score += 5;
+		if (indicators.requiresCodeGen) score += 8;
+		if (indicators.requiresAnalysis) score += 5;
+		if (indicators.requiresCreativity) score += 5;
+		if (indicators.accuracyCritical) score += 7;
+		if (indicators.needsMultipleSteps) score += 10;
+	}
+
+	// Cap at 100
+	return Math.min(score, 100);
 }

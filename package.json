@@ -22,7 +22,11 @@
 		"format": "biome format --write ./src ./tests",
 		"typecheck": "tsc --noEmit",
 		"prepublishOnly": "bun run lint && bun run test:run && bun run build",
-		"preversion": "bun run lint && bun run test:run"
+		"preversion": "bun run lint && bun run test:run",
+		"dashboard": "cd dashboard && bun run dev",
+		"dashboard:build": "cd dashboard && bun run build",
+		"dashboard:start": "cd dashboard && bun run start",
+		"dashboard:install": "cd dashboard && bun install"
 	},
 	"dependencies": {
 		"commander": "^12.1.0",

@@ -452,11 +452,32 @@ After core functionality is stable:
 - [ ] Automated check-in prompts
 - [ ] Scheduled news digests
 
-### UI Dashboard (Phase 6+)
-- [ ] Next.js dashboard
-- [ ] Identity editor
-- [ ] Goal visualization
-- [ ] Check-in history charts
+### UI Dashboard (Phase 6) - COMPLETED
+- [x] Next.js 14 dashboard with App Router
+- [x] Identity viewer with full context display
+- [x] Goal visualization with progress bars
+- [x] Check-in history with heatmap and charts
+- [x] Learnings/ratings page with distribution charts
+- [x] Cost tracking page with breakdown visualization
+- [x] Tokyo Night inspired theme with glass panel effects
+- [x] Responsive sidebar navigation
+
+#### Running the Dashboard
+```bash
+# Install dependencies
+bun run dashboard:install
+
+# Start development server
+bun run dashboard
+
+# Build for production
+bun run dashboard:build
+
+# Start production server
+bun run dashboard:start
+```
+
+The dashboard runs on `http://localhost:3030` and reads data directly from `~/.yxhyx/`.
 
 ### Advanced Learning
 - [ ] Embedding-based retrieval

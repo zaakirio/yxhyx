@@ -1,6 +1,6 @@
 # Yxhyx - Personal AI Assistant
 
-> *An AI assistant that knows you best, keeps you accountable, and curates your world.*
+> *An AI assistant that knows you best, keeps you accountable, and curates your world.* - WORK IN PROGRESS - LOADING ...
 
 ## Overview
 

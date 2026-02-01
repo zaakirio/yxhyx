@@ -1,0 +1,82 @@
+# Yxhyx Model Configuration
+#
+# Defines available AI models and routing rules for cost-optimized
+# model selection based on task complexity.
+
+models:
+  # Kimi (Moonshot) - Cheapest option for simple tasks
+  kimi-8k:
+    provider: kimi
+    model: moonshot-v1-8k
+    inputCostPer1M: 0.15
+    outputCostPer1M: 0.60
+    maxContext: 8000
+
+  kimi-32k:
+    provider: kimi
+    model: moonshot-v1-32k
+    inputCostPer1M: 0.30
+    outputCostPer1M: 1.20
+    maxContext: 32000
+
+  # OpenRouter models - Good balance of cost and capability
+  gemini-flash:
+    provider: openrouter
+    model: google/gemini-2.0-flash-001
+    inputCostPer1M: 0.10
+    outputCostPer1M: 0.40
+    maxContext: 128000
+
+  llama-70b:
+    provider: openrouter
+    model: meta-llama/llama-3.3-70b-instruct
+    inputCostPer1M: 0.50
+    outputCostPer1M: 0.75
+    maxContext: 128000
+
+  claude-haiku:
+    provider: openrouter
+    model: anthropic/claude-3.5-haiku
+    inputCostPer1M: 0.80
+    outputCostPer1M: 4.00
+    maxContext: 200000
+
+  # Anthropic direct - For complex/critical tasks
+  claude-sonnet:
+    provider: anthropic
+    model: claude-sonnet-4-20250514
+    inputCostPer1M: 3.00
+    outputCostPer1M: 15.00
+    maxContext: 200000
+
+# Routing rules: complexity level -> priority list of models
+# First available model (with valid API key) will be used
+routing:
+  TRIVIAL:
+    - kimi-8k
+    - gemini-flash
+
+  QUICK:
+    - kimi-8k
+    - gemini-flash
+    - llama-70b
+
+  STANDARD:
+    - kimi-32k
+    - llama-70b
+    - claude-haiku
+
+  COMPLEX:
+    - claude-haiku
+    - claude-sonnet
+    - llama-70b
+
+  CRITICAL:
+    - claude-sonnet
+
+# Pattern overrides: regex pattern -> model
+# These override the complexity-based routing
+overrides:
+  "security|authentication|vulnerability": claude-sonnet
+  "implement|refactor|create.*function": claude-haiku
+  "summarize|translate|format": kimi-8k

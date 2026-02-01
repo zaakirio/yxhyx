@@ -1,0 +1,73 @@
+# Yxhyx RSS Feed Configuration
+#
+# Configure RSS feeds for news aggregation organized by category.
+# Each feed has a type that determines its trust score.
+
+feeds:
+  tech_ai:
+    - name: "Hacker News"
+      url: "https://hnrss.org/frontpage"
+      type: "aggregator"
+      priority: "high"
+
+    - name: "TLDR Newsletter"
+      url: "https://tldr.tech/feed"
+      type: "newsletter"
+      priority: "high"
+
+    - name: "The Verge - AI"
+      url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+      type: "major"
+      priority: "medium"
+
+    - name: "AI News"
+      url: "https://www.artificialintelligence-news.com/feed/"
+      type: "trade"
+      priority: "medium"
+
+  security:
+    - name: "tl;dr sec"
+      url: "https://tldrsec.com/feed.xml"
+      type: "newsletter"
+      priority: "high"
+
+    - name: "Krebs on Security"
+      url: "https://krebsonsecurity.com/feed/"
+      type: "investigative"
+      priority: "high"
+
+    - name: "The Hacker News"
+      url: "https://feeds.feedburner.com/TheHackersNews"
+      type: "trade"
+      priority: "medium"
+
+    - name: "Schneier on Security"
+      url: "https://www.schneier.com/feed/"
+      type: "analysis"
+      priority: "medium"
+
+  startups:
+    - name: "TechCrunch"
+      url: "https://techcrunch.com/feed/"
+      type: "trade"
+      priority: "medium"
+
+  # Add your custom feeds here
+  custom: []
+
+# Source type trust scores (0-1)
+# Higher score = more trusted source
+source_trust_scores:
+  wire: 0.95          # AP, Reuters, AFP
+  major: 0.85         # NYT, WSJ, BBC
+  investigative: 0.85 # Deep research sources
+  analysis: 0.80      # Expert opinion
+  trade: 0.75         # Industry publications
+  newsletter: 0.70    # Curated newsletters
+  aggregator: 0.60    # HN, Reddit (fast but needs verification)
+  social: 0.40        # Twitter/X (sentiment, speed)
+
+settings:
+  max_items_per_feed: 20
+  max_age_hours: 48
+  dedup_threshold: 0.8  # Similarity threshold for deduplication

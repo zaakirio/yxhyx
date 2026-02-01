@@ -10,6 +10,7 @@
 import { Command } from 'commander';
 import { identityCommand } from '../commands/identity';
 import { initCommand } from '../commands/init';
+import { memoryCommand } from '../commands/memory';
 import { colors } from '../lib/cli/formatting';
 
 const program = new Command();
@@ -27,8 +28,9 @@ program
 
 program.addCommand(initCommand);
 program.addCommand(identityCommand);
+program.addCommand(memoryCommand);
 
-// Placeholder commands for Phase 2+
+// Placeholder commands for Phase 3+
 program
 	.command('chat [message...]')
 	.description('Chat with Yxhyx')
@@ -71,9 +73,17 @@ program
 			const { loadIdentity, getActiveGoals, getActiveProjects } = await import(
 				'../lib/context-loader'
 			);
+			const { workManager } = await import('../lib/memory/work-manager');
+			const { learningManager } = await import('../lib/memory/learning-manager');
+			const { stateManager } = await import('../lib/memory/state-manager');
+
 			const identity = await loadIdentity();
 			const activeGoals = await getActiveGoals();
 			const activeProjects = await getActiveProjects();
+			const currentWork = await workManager.getCurrentWork();
+			const ratingStats = await learningManager.getRatingStats(7);
+			const monthlyCost = await stateManager.getMonthlyCost();
+			const lastCheckin = await stateManager.getLastCheckin();
 
 			console.log(`
 ${colors.bold}═════════════════════════════════════════${colors.reset}
@@ -92,8 +102,15 @@ ${colors.cyan}🚀 PROJECTS${colors.reset}
   Active: ${activeProjects.length}
 ${activeProjects.map((p) => `  • ${p.name}`).join('\n') || '  None'}
 
-${colors.cyan}📚 LESSONS${colors.reset}
-  Total: ${identity.learned.length}
+${colors.cyan}🧠 MEMORY (7 days)${colors.reset}
+  Ratings: ${ratingStats.total} (avg: ${ratingStats.average.toFixed(1)}/10)
+  Current work: ${currentWork ? `${currentWork.id.substring(0, 30)}...` : 'None'}
+
+${colors.cyan}💰 COSTS${colors.reset}
+  This month: $${monthlyCost.toFixed(4)}
+
+${colors.cyan}✅ CHECK-INS${colors.reset}
+  Last: ${lastCheckin ? `${lastCheckin.type} (${new Date(lastCheckin.timestamp).toLocaleDateString()})` : 'None'}
 
 ${colors.dim}─────────────────────────────────────────${colors.reset}
 ${colors.dim}Last updated: ${new Date(identity.last_updated).toLocaleString()}${colors.reset}

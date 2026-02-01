@@ -13,6 +13,7 @@ import inquirer from 'inquirer';
 import { stringify } from 'yaml';
 import { bold, colors, info, success, warning } from '../lib/cli/formatting';
 import { getIdentityPath, getYxhyxDir, isInitialized, saveIdentity } from '../lib/context-loader';
+import { stateManager } from '../lib/memory/state-manager';
 import { DEFAULT_ROUTING_CONFIG } from '../lib/model-router';
 import { createDefaultIdentity } from '../lib/schemas/identity';
 import { generateViews } from '../lib/view-generator';
@@ -46,6 +47,7 @@ export const initCommand = new Command('init')
 				`${yxhyxDir}/memory/learning/signals`,
 				`${yxhyxDir}/memory/learning/patterns`,
 				`${yxhyxDir}/memory/learning/positive`,
+				`${yxhyxDir}/memory/learning/synthesis`,
 				`${yxhyxDir}/memory/state`,
 				`${yxhyxDir}/skills`,
 			];
@@ -177,14 +179,15 @@ export const initCommand = new Command('init')
 			await generateViews();
 			console.log(info(' Markdown views generated'));
 
-			// Create initial state
-			await writeFile(
-				`${yxhyxDir}/memory/state/current.json`,
-				JSON.stringify({ initialized: true, initializedAt: new Date().toISOString() }, null, 2)
-			);
+			// Initialize state manager
+			await stateManager.initialize();
+			console.log(info(' State manager initialized'));
 
 			// Create ratings file
 			await writeFile(`${yxhyxDir}/memory/learning/signals/ratings.jsonl`, '');
+
+			// Create cost tracking file
+			await writeFile(`${yxhyxDir}/memory/state/cost-tracking.json`, '{}');
 
 			// Create models config
 			await writeFile(`${yxhyxDir}/config/models.yaml`, stringify(DEFAULT_ROUTING_CONFIG));

@@ -48,7 +48,6 @@ function getConfiguredProvider(): string {
 export const initCommand = new Command('init')
 	.description('Initialize Yxhyx - your personal AI assistant')
 	.option('-f, --force', 'Reinitialize even if already initialized')
-	.option('-q, --quick', 'Quick initialization with minimal prompts')
 	.action(async (options) => {
 		try {
 			// Check for API keys and OpenCode first
@@ -200,16 +199,11 @@ Add the export to your shell profile (~/.zshrc or ~/.bashrc) and restart your te
 				console.log(warning('\nReinitializing Yxhyx...\n'));
 			}
 
-			const isQuick = options.quick;
 			const provider = getConfiguredProvider();
 
 			console.log(bold('\n Welcome to Yxhyx - Your Personal AI Assistant\n'));
 			console.log(info(`API Provider: ${provider}`));
-			console.log(
-				isQuick
-					? "Quick setup - we'll just need your name and a few interests.\n"
-					: "Let's set up your personal context. This will take about 2-3 minutes.\n"
-			);
+			console.log("Let's set up your personal context.\n");
 
 			// Define directories
 			const yxhyxDir = getYxhyxDir();
@@ -230,45 +224,8 @@ Add the export to your shell profile (~/.zshrc or ~/.bashrc) and restart your te
 				await mkdir(dir, { recursive: true });
 			}
 
-			// Gather user information - quick mode uses minimal prompts
-			const quickPrompts = [
-				{
-					type: 'input',
-					name: 'name',
-					message: 'What is your name?',
-					validate: (input: string) => input.trim().length > 0 || 'Name is required',
-				},
-				{
-					type: 'input',
-					name: 'timezone',
-					message: 'What is your timezone?',
-					default: Intl.DateTimeFormat().resolvedOptions().timeZone,
-				},
-				{
-					type: 'checkbox',
-					name: 'interests',
-					message: 'Select your top interests (for content curation):',
-					choices: [
-						'AI/ML',
-						'Security',
-						'Web Development',
-						'Mobile Development',
-						'DevOps/Cloud',
-						'Data Science',
-						'Startups',
-						'Finance/Investing',
-						'Health/Fitness',
-						'Productivity',
-						'Philosophy',
-						'Science',
-						'Design/UX',
-						'Gaming',
-					],
-					validate: (input: string[]) => input.length > 0 || 'Please select at least one interest',
-				},
-			];
-
-			const fullPrompts = [
+			// Gather user information - simplified to just 3 prompts
+			const prompts = [
 				{
 					type: 'input',
 					name: 'name',
@@ -283,97 +240,17 @@ Add the export to your shell profile (~/.zshrc or ~/.bashrc) and restart your te
 				},
 				{
 					type: 'input',
-					name: 'location',
-					message: 'Where are you located? (optional)',
-				},
-				{
-					type: 'editor',
 					name: 'background',
-					message: 'Brief description of who you are and what you do (opens editor):',
-				},
-				{
-					type: 'editor',
-					name: 'mission',
-					message: 'What is your life mission or purpose? (opens editor):',
-				},
-				{
-					type: 'checkbox',
-					name: 'interests',
-					message: 'Select your main interests (for content curation):',
-					choices: [
-						'AI/ML',
-						'Security',
-						'Web Development',
-						'Mobile Development',
-						'DevOps/Cloud',
-						'Data Science',
-						'Startups',
-						'Finance/Investing',
-						'Health/Fitness',
-						'Productivity',
-						'Philosophy',
-						'Science',
-						'Design/UX',
-						'Gaming',
-					],
-				},
-				{
-					type: 'list',
-					name: 'communicationStyle',
-					message: 'How do you prefer AI responses?',
-					choices: [
-						{ name: 'Direct - Get to the point', value: 'direct' },
-						{ name: 'Diplomatic - Balanced and considerate', value: 'diplomatic' },
-						{ name: 'Socratic - Guide me with questions', value: 'socratic' },
-					],
-					default: 'direct',
-				},
-				{
-					type: 'list',
-					name: 'communicationLength',
-					message: 'Preferred response length?',
-					choices: [
-						{ name: 'Concise - Brief and to the point', value: 'concise' },
-						{ name: 'Detailed - Comprehensive explanations', value: 'detailed' },
-						{ name: 'Adaptive - Depends on the question', value: 'adaptive' },
-					],
-					default: 'concise',
+					message: 'Brief description of who you are and what you do:',
+					validate: (input: string) => input.trim().length > 0 || 'Please tell us about yourself',
 				},
 			];
 
-			const answers = await inquirer.prompt(isQuick ? quickPrompts : fullPrompts);
+			const answers = await inquirer.prompt(prompts);
 
 			// Create identity
 			const identity = createDefaultIdentity(answers.name.trim(), answers.timezone);
-
-			// Update with user answers (quick mode uses defaults for missing fields)
-			if (!isQuick) {
-				identity.about.location = answers.location?.trim() || undefined;
-				identity.about.background = answers.background?.trim() || '';
-				identity.mission = answers.mission?.trim() || '';
-
-				// Set communication preferences (only in full mode)
-				identity.preferences.communication.style = answers.communicationStyle as
-					| 'direct'
-					| 'diplomatic'
-					| 'socratic';
-				identity.preferences.communication.length = answers.communicationLength as
-					| 'concise'
-					| 'detailed'
-					| 'adaptive';
-			}
-
-			// Distribute interests by priority (first 3 high, next 3 medium, rest low)
-			const interests = answers.interests as string[];
-			identity.interests.high_priority = interests
-				.slice(0, 3)
-				.map((topic) => ({ topic, subtopics: [] }));
-			identity.interests.medium_priority = interests
-				.slice(3, 6)
-				.map((topic) => ({ topic, subtopics: [] }));
-			identity.interests.low_priority = interests
-				.slice(6)
-				.map((topic) => ({ topic, subtopics: [] }));
+			identity.about.background = answers.background?.trim() || '';
 
 			// Save identity
 			await saveIdentity(identity);

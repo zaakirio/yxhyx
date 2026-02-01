@@ -266,3 +266,49 @@ export function truncate(text: string, maxLength: number): string {
 	if (text.length <= maxLength) return text;
 	return `${text.slice(0, maxLength - 3)}...`;
 }
+
+// ============================================
+// Additional Formatters for Skills
+// ============================================
+
+/**
+ * Format a styled box with title and subtitle
+ */
+export function formatBox(title: string, subtitle?: string): string {
+	const line = '═'.repeat(Math.max(title.length + 4, 40));
+	let result = `${colors.cyan}${line}${colors.reset}\n`;
+	result += `${colors.bold}${colors.cyan}  ${title}${colors.reset}\n`;
+	if (subtitle) {
+		result += `${colors.dim}  ${subtitle}${colors.reset}\n`;
+	}
+	result += `${colors.cyan}${line}${colors.reset}`;
+	return result;
+}
+
+/**
+ * Format a table with headers and rows
+ */
+export function formatTable(headers: string[], rows: string[][]): string {
+	return table(headers, rows);
+}
+
+/**
+ * Format a success message
+ */
+export function formatSuccess(message: string): string {
+	return `${colors.green}✓${colors.reset} ${message}`;
+}
+
+/**
+ * Format an error message
+ */
+export function formatError(message: string): string {
+	return `${colors.red}✗${colors.reset} ${message}`;
+}
+
+/**
+ * Format a warning message
+ */
+export function formatWarning(message: string): string {
+	return `${colors.yellow}⚠${colors.reset} ${message}`;
+}

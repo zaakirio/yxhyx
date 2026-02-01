@@ -1,0 +1,68 @@
+name: news
+version: "1.0.0"
+description: Personalized news aggregation and digest with perspective diversity tracking
+
+triggers:
+  patterns:
+    - "news"
+    - "what's happening"
+    - "latest updates"
+    - "catch me up"
+    - "what's new"
+    - "headlines"
+  keywords:
+    - news
+    - headlines
+    - digest
+    - updates
+    - briefing
+
+dependencies: []
+
+workflows:
+  digest:
+    description: Generate personalized news digest based on interests and goals
+    file: workflows/digest.md
+    default: true
+    triggers:
+      - "news digest"
+      - "daily news"
+      - "morning briefing"
+    estimated_seconds: 30
+    model_complexity: STANDARD
+
+  topic:
+    description: News about a specific topic with depth
+    file: workflows/topic.md
+    triggers:
+      - "news about"
+      - "updates on"
+      - "what's happening with"
+    estimated_seconds: 20
+    model_complexity: QUICK
+
+  tech:
+    description: Technology and AI focused news
+    file: workflows/tech.md
+    triggers:
+      - "tech news"
+      - "ai news"
+      - "technology updates"
+    estimated_seconds: 25
+    model_complexity: STANDARD
+
+config:
+  max_items: 10
+  include_goal_relevance: true
+  perspective_diversity: true
+  default_categories:
+    - technology
+    - business
+    - science
+
+env:
+  required: []
+  optional: []
+
+author: Yxhyx Team
+license: MIT

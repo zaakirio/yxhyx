@@ -1,0 +1,78 @@
+name: checkin
+version: "1.0.0"
+description: Accountability check-ins for planning, reflection, and goal tracking
+
+triggers:
+  patterns:
+    - "check in"
+    - "check-in"
+    - "checkin"
+    - "how am I doing"
+    - "daily review"
+    - "weekly review"
+  keywords:
+    - checkin
+    - accountability
+    - reflection
+    - planning
+    - review
+
+dependencies: []
+
+workflows:
+  morning:
+    description: Morning planning check-in to set intentions for the day
+    file: workflows/morning.md
+    default: true
+    triggers:
+      - "morning"
+      - "morning checkin"
+      - "start my day"
+      - "plan my day"
+    estimated_seconds: 45
+    model_complexity: STANDARD
+
+  evening:
+    description: Evening reflection check-in to review the day
+    file: workflows/evening.md
+    triggers:
+      - "evening"
+      - "evening checkin"
+      - "end of day"
+      - "daily reflection"
+      - "wrap up"
+    estimated_seconds: 45
+    model_complexity: STANDARD
+
+  weekly:
+    description: Comprehensive weekly review and planning
+    file: workflows/weekly.md
+    triggers:
+      - "weekly"
+      - "weekly review"
+      - "week review"
+      - "weekly checkin"
+    estimated_seconds: 90
+    model_complexity: COMPLEX
+
+  quick:
+    description: Quick check-in for busy moments
+    file: workflows/quick.md
+    triggers:
+      - "quick checkin"
+      - "fast checkin"
+      - "brief checkin"
+    estimated_seconds: 20
+    model_complexity: QUICK
+
+config:
+  save_to_history: true
+  update_goals: true
+  prompt_for_learnings: true
+
+env:
+  required: []
+  optional: []
+
+author: Yxhyx Team
+license: MIT

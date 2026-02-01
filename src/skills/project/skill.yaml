@@ -1,0 +1,69 @@
+name: project
+version: "1.0.0"
+description: Project scaffolding, planning, and management
+
+triggers:
+  patterns:
+    - "create project"
+    - "new project"
+    - "start a project"
+    - "spin up"
+    - "bootstrap"
+    - "scaffold"
+    - "project idea"
+  keywords:
+    - project
+    - scaffold
+    - bootstrap
+    - create
+    - setup
+
+dependencies: []
+
+workflows:
+  create:
+    description: Create a new project from template with full setup
+    file: workflows/create.md
+    default: true
+    triggers:
+      - "create project"
+      - "new project"
+      - "start project"
+      - "spin up"
+    estimated_seconds: 30
+    model_complexity: STANDARD
+
+  plan:
+    description: Plan out a project idea before starting
+    file: workflows/plan.md
+    triggers:
+      - "plan project"
+      - "project plan"
+      - "project idea"
+      - "think through project"
+    estimated_seconds: 45
+    model_complexity: STANDARD
+
+  review:
+    description: Review project status and suggest next steps
+    file: workflows/review.md
+    triggers:
+      - "project status"
+      - "review project"
+      - "project review"
+      - "where am I"
+    estimated_seconds: 30
+    model_complexity: QUICK
+
+config:
+  default_template: typescript
+  auto_git_init: true
+  include_readme: true
+  include_tests: true
+
+env:
+  required: []
+  optional: []
+
+author: Yxhyx Team
+license: MIT

@@ -17,6 +17,7 @@ import { bold, colors, info, success, warning } from '../lib/cli/formatting';
 import { getIdentityPath, getYxhyxDir, isInitialized, saveIdentity } from '../lib/context-loader';
 import { stateManager } from '../lib/memory/state-manager';
 import { DEFAULT_ROUTING_CONFIG } from '../lib/model-router';
+import { detectOpenCode, setupOpenCodeIntegration } from '../lib/opencode-integration';
 import { createDefaultIdentity } from '../lib/schemas/identity';
 import { generateViews } from '../lib/view-generator';
 
@@ -342,6 +343,61 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 			await copyBuiltinSkills(yxhyxDir);
 			console.log(info(' Built-in skills installed'));
 
+			// ============================================
+			// OpenCode Integration
+			// ============================================
+			let openCodeSetUp = false;
+			const openCodeStatus = await detectOpenCode();
+
+			if (openCodeStatus.installed || openCodeStatus.configExists) {
+				// OpenCode is installed or has been configured - ask about integration
+				const { setupOpenCode } = await inquirer.prompt([
+					{
+						type: 'confirm',
+						name: 'setupOpenCode',
+						message: openCodeStatus.installed
+							? 'OpenCode detected. Set up Yxhyx integration with OpenCode?'
+							: 'OpenCode config directory found. Set up Yxhyx integration?',
+						default: true,
+					},
+				]);
+
+				if (setupOpenCode) {
+					console.log(info('\n Setting up OpenCode integration...'));
+					const { backupPath, filesCreated } = await setupOpenCodeIntegration();
+
+					if (backupPath) {
+						console.log(info(` Existing config backed up to: ${backupPath}`));
+					}
+
+					console.log(success(' OpenCode integration configured!'));
+					console.log(info(` Created ${filesCreated.length} files:`));
+					console.log('   - ~/.config/opencode/AGENTS.md (global rules)');
+					console.log('   - ~/.config/opencode/opencode.json (config)');
+					console.log('   - ~/.config/opencode/skills/yxhyx-*/SKILL.md (4 skills)');
+					openCodeSetUp = true;
+				}
+			} else {
+				// OpenCode not detected - offer to set up anyway
+				const { setupOpenCode } = await inquirer.prompt([
+					{
+						type: 'confirm',
+						name: 'setupOpenCode',
+						message:
+							'OpenCode not detected. Set up integration anyway? (You can install OpenCode later)',
+						default: false,
+					},
+				]);
+
+				if (setupOpenCode) {
+					console.log(info('\n Setting up OpenCode integration...'));
+					const { filesCreated } = await setupOpenCodeIntegration();
+					console.log(success(' OpenCode integration configured!'));
+					console.log(info(` Created ${filesCreated.length} files`));
+					openCodeSetUp = true;
+				}
+			}
+
 			// Print success message
 			console.log(success('\n Yxhyx initialized successfully!\n'));
 			console.log(`${bold('Your identity is stored at:')} ${getIdentityPath()}`);
@@ -359,7 +415,18 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 			console.log(
 				`     ${colors.cyan}yxhyx checkin morning${colors.reset}   - Do a morning check-in`
 			);
-			console.log(`     ${colors.cyan}yxhyx status${colors.reset}            - Quick overview\n`);
+			console.log(`     ${colors.cyan}yxhyx status${colors.reset}            - Quick overview`);
+
+			if (openCodeSetUp) {
+				console.log(`\n${bold('OpenCode Integration:')}`);
+				console.log(
+					`     ${colors.cyan}opencode${colors.reset}                - Launch OpenCode with Yxhyx context`
+				);
+				console.log(
+					`     ${colors.cyan}yxhyx sync${colors.reset}              - Regenerate OpenCode files after identity changes`
+				);
+			}
+			console.log('');
 		} catch (error) {
 			console.error(colors.red, '\nError during initialization:', error);
 			process.exit(1);

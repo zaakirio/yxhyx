@@ -16,8 +16,21 @@ import {
 	warning,
 } from '../lib/cli/formatting';
 import { getActiveGoals, loadIdentity, updateIdentity } from '../lib/context-loader';
+import { isOpenCodeIntegrationSetUp, syncOpenCodeIntegration } from '../lib/opencode-integration';
 import { type Goal, type Project, generateId } from '../lib/schemas/identity';
 import { generateViews } from '../lib/view-generator';
+
+/**
+ * Regenerate views and sync OpenCode if integration is set up
+ */
+async function regenerateAndSync(): Promise<void> {
+	await generateViews();
+
+	// If OpenCode integration is set up, sync it too
+	if (isOpenCodeIntegrationSetUp()) {
+		await syncOpenCodeIntegration();
+	}
+}
 
 export const identityCommand = new Command('identity')
 	.description('Manage your identity and context')
@@ -186,7 +199,7 @@ identityCommand
 				},
 			}));
 
-			await generateViews();
+			await regenerateAndSync();
 
 			console.log(success(`\n Added ${options.term}-term goal: ${title}`));
 			console.log(dim(`  ID: ${goal.id}`));
@@ -250,7 +263,7 @@ identityCommand
 				return;
 			}
 
-			await generateViews();
+			await regenerateAndSync();
 
 			const statusIcon = progress >= 1 ? '🎉' : '📈';
 			console.log(success(`\n${statusIcon} Updated "${goalTitle}" to ${percent}%\n`));
@@ -282,7 +295,7 @@ identityCommand
 				],
 			}));
 
-			await generateViews();
+			await regenerateAndSync();
 
 			console.log(success('\n📝 Lesson added'));
 			console.log(dim(`  "${lesson}"`));
@@ -329,7 +342,7 @@ identityCommand
 				},
 			}));
 
-			await generateViews();
+			await regenerateAndSync();
 
 			console.log(success(`\n🎯 Added ${options.priority}-priority interest: ${topic}`));
 			if (subtopics.length > 0) {
@@ -370,7 +383,7 @@ identityCommand
 				projects: [...identity.projects, project],
 			}));
 
-			await generateViews();
+			await regenerateAndSync();
 
 			console.log(success(`\n🚀 Added project: ${name}`));
 			console.log(dim(`  ID: ${project.id}`));

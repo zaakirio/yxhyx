@@ -10,6 +10,7 @@ Yxhyx (pronounced "yix-hix") is a personal AI assistant designed to:
 - **Curate personalized content** from diverse news sources
 - **Assist with research** using multi-model parallel queries
 - **Optimize costs** by routing tasks to the cheapest capable model
+- **Work with OpenCode** for powerful agentic coding with your personal context
 
 ## Installation
 
@@ -56,6 +57,7 @@ export ANTHROPIC_API_KEY="your-anthropic-key"
 
 ```bash
 # Initialize Yxhyx (creates ~/.yxhyx directory)
+# Will also prompt to set up OpenCode integration if detected
 yxhyx init
 
 # Chat with your AI assistant
@@ -75,13 +77,16 @@ yxhyx status
 
 # Rate an interaction (1-10)
 yxhyx "8 - great response"
+
+# Sync views and OpenCode integration after identity changes
+yxhyx sync
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `yxhyx init` | Initialize Yxhyx with guided setup |
+| `yxhyx init` | Initialize Yxhyx with guided setup (+ OpenCode integration) |
 | `yxhyx chat [message]` | Chat with your AI assistant |
 | `yxhyx chat -i` | Interactive chat mode |
 | `yxhyx checkin [morning\|evening\|weekly]` | Accountability check-ins |
@@ -95,6 +100,9 @@ yxhyx "8 - great response"
 | `yxhyx cost` | View API costs for current month |
 | `yxhyx cost -d` | Detailed cost breakdown by model |
 | `yxhyx memory learnings` | View captured learnings |
+| `yxhyx sync` | Regenerate views and OpenCode files |
+| `yxhyx sync --views` | Only regenerate identity views |
+| `yxhyx sync --opencode` | Only regenerate OpenCode files |
 
 ## Architecture
 
@@ -171,6 +179,42 @@ Non-biased, personalized news:
 - **Weekly**: Comprehensive review and goal updates
 - Automatic goal progress updates from your responses
 
+### 6. OpenCode Integration
+
+Yxhyx integrates seamlessly with [OpenCode](https://opencode.ai), bringing your personal context into powerful agentic coding sessions.
+
+**Dual-mode operation:**
+- **Standalone CLI** - Use `yxhyx` directly for quick tasks, check-ins, and chat
+- **OpenCode integration** - Use `opencode` with full Yxhyx context for coding tasks
+
+**What gets set up:**
+```
+~/.config/opencode/
+├── AGENTS.md                    # Global rules with your identity context
+├── opencode.json                # Configuration pointing to Yxhyx
+└── skills/
+    ├── yxhyx-checkin/SKILL.md   # Check-in workflows
+    ├── yxhyx-research/SKILL.md  # Research with URL verification
+    ├── yxhyx-news/SKILL.md      # Personalized news digest
+    └── yxhyx-identity/SKILL.md  # Identity management
+```
+
+**Using with OpenCode:**
+```bash
+# Launch OpenCode - your identity is automatically loaded
+opencode
+
+# Inside OpenCode, use Yxhyx skills:
+# - "Load the yxhyx-checkin skill and do my morning check-in"
+# - "Help me research X" (uses your interests for context)
+# - OpenCode knows your goals, projects, and preferences
+```
+
+**Keeping in sync:**
+- Identity changes via `yxhyx identity` commands auto-sync to OpenCode
+- Manual sync: `yxhyx sync`
+- OpenCode reads from `~/.yxhyx/` for the latest context
+
 ## Development
 
 ```bash
@@ -221,6 +265,7 @@ Complete implementation specifications are in `/docs`:
 | [06-cli-interface.md](docs/06-cli-interface.md) | Terminal CLI implementation |
 | [07-skills-framework.md](docs/07-skills-framework.md) | Modular skills architecture |
 | [08-implementation-plan.md](docs/08-implementation-plan.md) | Phased build roadmap |
+| [09-opencode-integration.md](docs/09-opencode-integration.md) | OpenCode integration guide |
 
 ## Troubleshooting
 

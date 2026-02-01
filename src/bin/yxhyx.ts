@@ -18,6 +18,7 @@ import { initCommand } from '../commands/init';
 import { memoryCommand } from '../commands/memory';
 import { newsCommand } from '../commands/news';
 import { skillsCommand } from '../commands/skills';
+import { syncCommand } from '../commands/sync';
 import { verifyCommand } from '../commands/verify';
 import { learningManager } from '../lib/memory/learning-manager';
 import { executeSkill, skillRouter } from '../lib/skills';
@@ -53,6 +54,7 @@ program.addCommand(checkinCommand);
 
 // Utility commands
 program.addCommand(verifyCommand);
+program.addCommand(syncCommand);
 
 // Chat command
 program

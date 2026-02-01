@@ -35,6 +35,7 @@ program
 // Phase 1: Foundation
 program.addCommand(initCommand);
 program.addCommand(identityCommand);
+program.addCommand(memoryCommand);
 
 // Phase 3: Core Skills
 program.addCommand(chatCommand);

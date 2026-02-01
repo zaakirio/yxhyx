@@ -171,7 +171,7 @@ export default async function DashboardPage() {
 													checkin.type === 'morning'
 														? 'bg-accent-yellow'
 														: checkin.type === 'evening'
-															? 'bg-accent-purple'
+															? 'bg-primary'
 															: 'bg-accent-cyan'
 												}`}
 											/>

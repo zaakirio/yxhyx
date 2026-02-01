@@ -142,9 +142,7 @@ export default async function CheckinsPage() {
 										{day.types.includes('morning') && (
 											<Sun className="w-3 h-3 text-accent-yellow" />
 										)}
-										{day.types.includes('evening') && (
-											<Moon className="w-3 h-3 text-accent-purple" />
-										)}
+										{day.types.includes('evening') && <Moon className="w-3 h-3 text-primary" />}
 										{day.types.includes('weekly') && (
 											<CalendarDays className="w-3 h-3 text-accent-cyan" />
 										)}
@@ -158,7 +156,7 @@ export default async function CheckinsPage() {
 							<Sun className="w-3 h-3 text-accent-yellow" /> Morning
 						</div>
 						<div className="flex items-center gap-2">
-							<Moon className="w-3 h-3 text-accent-purple" /> Evening
+							<Moon className="w-3 h-3 text-primary" /> Evening
 						</div>
 						<div className="flex items-center gap-2">
 							<CalendarDays className="w-3 h-3 text-accent-cyan" /> Weekly
@@ -202,7 +200,7 @@ export default async function CheckinsPage() {
 												checkin.type === 'morning'
 													? 'bg-accent-yellow/20 text-accent-yellow'
 													: checkin.type === 'evening'
-														? 'bg-accent-purple/20 text-accent-purple'
+														? 'bg-primary/20 text-primary'
 														: 'bg-accent-cyan/20 text-accent-cyan'
 											}`}
 										>
@@ -262,7 +260,7 @@ export default async function CheckinsPage() {
 													<ul className="text-sm text-foreground space-y-1">
 														{checkin.learnings.slice(0, 3).map((l, lIdx) => (
 															<li key={lIdx} className="flex items-start gap-2">
-																<Sparkles className="w-4 h-4 text-accent-purple mt-0.5 shrink-0" />
+																<Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
 																{l}
 															</li>
 														))}

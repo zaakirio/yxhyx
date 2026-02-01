@@ -22,7 +22,7 @@ export function Sidebar() {
 			<div className="flex flex-col h-full">
 				{/* Logo */}
 				<div className="flex items-center gap-3 px-6 py-6 border-b border-border">
-					<div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center">
+					<div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent-hover flex items-center justify-center">
 						<Sparkles className="w-6 h-6 text-white" />
 					</div>
 					<div>

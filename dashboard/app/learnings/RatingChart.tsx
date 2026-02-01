@@ -10,6 +10,17 @@ import {
 	YAxis,
 } from 'recharts';
 
+// Design system colors
+const colors = {
+	primary: 'rgb(162, 59, 103)',
+	grid: 'rgba(255, 255, 255, 0.06)',
+	axis: 'rgba(255, 255, 255, 0.1)',
+	text: '#6a6a6a',
+	tooltipBg: '#1f1f1f',
+	tooltipBorder: 'rgba(255, 255, 255, 0.1)',
+	tooltipText: '#f0f0f0',
+};
+
 interface RatingChartProps {
 	data: Array<{
 		date: string;
@@ -36,27 +47,27 @@ export function RatingChart({ data }: RatingChartProps) {
 		<div className="h-[250px] w-full">
 			<ResponsiveContainer width="100%" height="100%">
 				<LineChart data={formattedData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-					<CartesianGrid strokeDasharray="3 3" stroke="#414868" />
+					<CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
 					<XAxis
 						dataKey="date"
-						tick={{ fill: '#565f89', fontSize: 12 }}
-						tickLine={{ stroke: '#414868' }}
-						axisLine={{ stroke: '#414868' }}
+						tick={{ fill: colors.text, fontSize: 12 }}
+						tickLine={{ stroke: colors.axis }}
+						axisLine={{ stroke: colors.axis }}
 					/>
 					<YAxis
 						domain={[0, 10]}
-						tick={{ fill: '#565f89', fontSize: 12 }}
-						tickLine={{ stroke: '#414868' }}
-						axisLine={{ stroke: '#414868' }}
+						tick={{ fill: colors.text, fontSize: 12 }}
+						tickLine={{ stroke: colors.axis }}
+						axisLine={{ stroke: colors.axis }}
 					/>
 					<Tooltip
 						contentStyle={{
-							backgroundColor: '#24283b',
-							border: '1px solid #414868',
+							backgroundColor: colors.tooltipBg,
+							border: `1px solid ${colors.tooltipBorder}`,
 							borderRadius: '12px',
-							color: '#c0caf5',
+							color: colors.tooltipText,
 						}}
-						labelStyle={{ color: '#c0caf5', fontWeight: 'bold' }}
+						labelStyle={{ color: colors.tooltipText, fontWeight: 'bold' }}
 						formatter={(value: number, name: string) => [
 							name === 'average' ? value.toFixed(1) : value,
 							name === 'average' ? 'Avg Rating' : 'Count',
@@ -66,10 +77,10 @@ export function RatingChart({ data }: RatingChartProps) {
 						type="monotone"
 						dataKey="average"
 						name="Average"
-						stroke="#7aa2f7"
+						stroke={colors.primary}
 						strokeWidth={2}
-						dot={{ fill: '#7aa2f7', strokeWidth: 2 }}
-						activeDot={{ r: 6, fill: '#7aa2f7' }}
+						dot={{ fill: colors.primary, strokeWidth: 2 }}
+						activeDot={{ r: 6, fill: colors.primary }}
 					/>
 				</LineChart>
 			</ResponsiveContainer>

@@ -10,19 +10,24 @@ interface StatCardProps {
 		value: number;
 		label: string;
 	};
-	variant?: 'blue' | 'purple' | 'green' | 'orange' | 'cyan' | 'red';
+	variant?: 'primary' | 'blue' | 'purple' | 'green' | 'orange' | 'cyan' | 'red' | 'yellow';
 }
 
 const variantStyles = {
-	blue: {
-		gradient: 'stat-gradient-blue',
+	primary: {
+		gradient: 'stat-gradient-primary',
 		icon: 'text-primary bg-primary/20',
 		trend: 'text-primary',
 	},
+	blue: {
+		gradient: 'stat-gradient-blue',
+		icon: 'text-accent-blue bg-accent-blue/20',
+		trend: 'text-accent-blue',
+	},
 	purple: {
-		gradient: 'stat-gradient-purple',
-		icon: 'text-accent-purple bg-accent-purple/20',
-		trend: 'text-accent-purple',
+		gradient: 'stat-gradient-primary',
+		icon: 'text-primary bg-primary/20',
+		trend: 'text-primary',
 	},
 	green: {
 		gradient: 'stat-gradient-green',
@@ -43,6 +48,11 @@ const variantStyles = {
 		gradient: 'stat-gradient-red',
 		icon: 'text-accent-red bg-accent-red/20',
 		trend: 'text-accent-red',
+	},
+	yellow: {
+		gradient: 'stat-gradient-yellow',
+		icon: 'text-accent-yellow bg-accent-yellow/20',
+		trend: 'text-accent-yellow',
 	},
 };
 

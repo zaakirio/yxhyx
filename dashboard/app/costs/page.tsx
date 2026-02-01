@@ -13,9 +13,9 @@ export const dynamic = 'force-dynamic';
 const modelInfo: Record<string, { name: string; color: string }> = {
 	'kimi-k2.5': { name: 'Kimi K2.5', color: 'bg-accent-green' },
 	openrouter: { name: 'OpenRouter', color: 'bg-accent-cyan' },
-	claude: { name: 'Claude', color: 'bg-accent-purple' },
-	'claude-sonnet': { name: 'Claude Sonnet', color: 'bg-accent-purple' },
-	'gpt-4': { name: 'GPT-4', color: 'bg-primary' },
+	claude: { name: 'Claude', color: 'bg-primary' },
+	'claude-sonnet': { name: 'Claude Sonnet', color: 'bg-primary' },
+	'gpt-4': { name: 'GPT-4', color: 'bg-accent-blue' },
 	default: { name: 'Other', color: 'bg-foreground-muted' },
 };
 
@@ -106,7 +106,7 @@ export default async function CostsPage() {
 						<Card>
 							<CardHeader>
 								<CardTitle className="flex items-center gap-2">
-									<PieChart className="w-5 h-5 text-accent-purple" />
+									<PieChart className="w-5 h-5 text-primary" />
 									Cost Breakdown by Model
 								</CardTitle>
 								<Badge variant="default">
@@ -176,11 +176,11 @@ export default async function CostsPage() {
 															currentAngle += angle;
 
 															const colors: Record<string, string> = {
-																'bg-accent-green': '#9ece6a',
-																'bg-accent-cyan': '#7dcfff',
-																'bg-accent-purple': '#bb9af7',
-																'bg-primary': '#7aa2f7',
-																'bg-foreground-muted': '#565f89',
+																'bg-accent-green': '#4ff4c7',
+																'bg-accent-cyan': '#4ff4c7',
+																'bg-accent-blue': '#4f8cff',
+																'bg-primary': 'rgb(162, 59, 103)',
+																'bg-foreground-muted': '#6a6a6a',
 															};
 
 															return (

@@ -15,7 +15,7 @@ function GoalCard({ goal, term }: { goal: Goal; term: string }) {
 	const termColors = {
 		short: 'border-l-accent-orange',
 		medium: 'border-l-accent-cyan',
-		long: 'border-l-accent-purple',
+		long: 'border-l-primary',
 	};
 
 	return (
@@ -217,7 +217,7 @@ export default async function GoalsPage() {
 						<Card>
 							<CardHeader>
 								<div className="flex items-center gap-3">
-									<div className="w-3 h-3 rounded-full bg-accent-purple" />
+									<div className="w-3 h-3 rounded-full bg-primary" />
 									<CardTitle>Long-term Goals</CardTitle>
 								</div>
 								<Badge variant="purple">

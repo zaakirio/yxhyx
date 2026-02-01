@@ -63,7 +63,7 @@ export default async function IdentityPage() {
 			<Card>
 				<CardHeader>
 					<div className="flex items-center gap-3">
-						<div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center">
+						<div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent-hover flex items-center justify-center">
 							<User className="w-6 h-6 text-white" />
 						</div>
 						<div>
@@ -110,7 +110,7 @@ export default async function IdentityPage() {
 				<Card>
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2">
-							<Sparkles className="w-5 h-5 text-accent-purple" />
+							<Sparkles className="w-5 h-5 text-primary" />
 							Mission
 						</CardTitle>
 					</CardHeader>

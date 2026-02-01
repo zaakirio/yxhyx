@@ -8,10 +8,16 @@
  */
 
 import { Command } from 'commander';
+import { colors } from '../lib/cli/formatting';
+
+import { chat, chatCommand } from '../commands/chat';
+import { checkinCommand } from '../commands/checkin';
 import { identityCommand } from '../commands/identity';
+// Import commands
 import { initCommand } from '../commands/init';
 import { memoryCommand } from '../commands/memory';
-import { colors } from '../lib/cli/formatting';
+import { statusCommand } from '../commands/status';
+import { learningManager } from '../lib/memory/learning-manager';
 
 const program = new Command();
 
@@ -26,171 +32,116 @@ program
 // Register Commands
 // ============================================
 
+// Phase 1: Foundation
 program.addCommand(initCommand);
 program.addCommand(identityCommand);
 program.addCommand(memoryCommand);
 
-// Placeholder commands for Phase 3+
-program
-	.command('chat [message...]')
-	.description('Chat with Yxhyx')
-	.option('-m, --model <model>', 'Force specific model')
-	.option('-i, --interactive', 'Start interactive session')
-	.action((message, _options) => {
-		if (!message || message.length === 0) {
-			console.log(`${colors.yellow}Chat functionality coming in Phase 3.${colors.reset}`);
-			console.log('For now, try:');
-			console.log(`  ${colors.cyan}yxhyx init${colors.reset} - Initialize Yxhyx`);
-			console.log(`  ${colors.cyan}yxhyx identity show${colors.reset} - View your identity`);
-			return;
-		}
-		console.log(
-			`${colors.yellow}Chat with AI coming soon. Your message: "${message.join(' ')}"${colors.reset}`
-		);
-	});
+// Phase 3: Core Skills
+program.addCommand(chatCommand);
+program.addCommand(checkinCommand);
+program.addCommand(statusCommand);
+program.addCommand(memoryCommand);
 
-program
-	.command('checkin [type]')
-	.description('Accountability check-ins (morning/evening/weekly)')
-	.option('-q, --quick', 'Quick check-in mode')
-	.action((_type, _options) => {
-		console.log(`${colors.yellow}Check-in functionality coming in Phase 3.${colors.reset}`);
-	});
-
+// Phase 4: News & Research (Coming Soon)
 program
 	.command('news')
 	.description('Personalized news digest')
 	.option('-c, --category <name>', 'Specific category')
-	.action((_options) => {
+	.action(async (_options) => {
 		console.log(`${colors.yellow}News functionality coming in Phase 4.${colors.reset}`);
+		console.log('This will include:');
+		console.log('  - RSS feed aggregation');
+		console.log('  - AI-powered news digest');
+		console.log('  - Goal-relevant article matching');
 	});
 
 program
-	.command('status')
-	.description('Quick status overview')
-	.action(async () => {
-		try {
-			const { loadIdentity, getActiveGoals, getActiveProjects } = await import(
-				'../lib/context-loader'
-			);
-			const { workManager } = await import('../lib/memory/work-manager');
-			const { learningManager } = await import('../lib/memory/learning-manager');
-			const { stateManager } = await import('../lib/memory/state-manager');
-
-			const identity = await loadIdentity();
-			const activeGoals = await getActiveGoals();
-			const activeProjects = await getActiveProjects();
-			const currentWork = await workManager.getCurrentWork();
-			const ratingStats = await learningManager.getRatingStats(7);
-			const monthlyCost = await stateManager.getMonthlyCost();
-			const lastCheckin = await stateManager.getLastCheckin();
-
-			console.log(`
-${colors.bold}═════════════════════════════════════════${colors.reset}
-${colors.bold}  YXHYX STATUS - ${identity.about.name}${colors.reset}
-${colors.bold}═════════════════════════════════════════${colors.reset}
-
-${colors.cyan}📋 GOALS${colors.reset}
-  Active: ${activeGoals.length}
-${activeGoals
-	.slice(0, 3)
-	.map((g) => `  • ${g.title} (${Math.round(g.progress * 100)}%)`)
-	.join('\n')}
-${activeGoals.length > 3 ? `  ... and ${activeGoals.length - 3} more` : ''}
-
-${colors.cyan}🚀 PROJECTS${colors.reset}
-  Active: ${activeProjects.length}
-${activeProjects.map((p) => `  • ${p.name}`).join('\n') || '  None'}
-
-${colors.cyan}🧠 MEMORY (7 days)${colors.reset}
-  Ratings: ${ratingStats.total} (avg: ${ratingStats.average.toFixed(1)}/10)
-  Current work: ${currentWork ? `${currentWork.id.substring(0, 30)}...` : 'None'}
-
-${colors.cyan}💰 COSTS${colors.reset}
-  This month: $${monthlyCost.toFixed(4)}
-
-${colors.cyan}✅ CHECK-INS${colors.reset}
-  Last: ${lastCheckin ? `${lastCheckin.type} (${new Date(lastCheckin.timestamp).toLocaleDateString()})` : 'None'}
-
-${colors.dim}─────────────────────────────────────────${colors.reset}
-${colors.dim}Last updated: ${new Date(identity.last_updated).toLocaleString()}${colors.reset}
-`);
-		} catch (err) {
-			if (err instanceof Error && err.message.includes('not initialized')) {
-				console.log(`\n${colors.yellow}Yxhyx not initialized. Run: yxhyx init${colors.reset}\n`);
-			} else {
-				console.error(
-					`${colors.red}Error: ${err instanceof Error ? err.message : err}${colors.reset}`
-				);
-			}
-		}
+	.command('research <query>')
+	.description('Research a topic')
+	.option('-d, --deep', 'Use multi-model deep research')
+	.action(async (query, _options) => {
+		console.log(`${colors.yellow}Research functionality coming in Phase 4.${colors.reset}`);
+		console.log(`Your query: "${query}"`);
 	});
 
+// Cost command - quick access to cost tracking
 program
 	.command('cost')
 	.description('View API costs')
 	.option('-m, --month <YYYY-MM>', 'Specific month')
 	.option('-d, --detailed', 'Show breakdown by model')
 	.action(async (options) => {
-		try {
-			const { readFile } = await import('node:fs/promises');
-			const { existsSync } = await import('node:fs');
-			const costPath = `${process.env.HOME}/.yxhyx/memory/state/cost-tracking.json`;
+		// Delegate to memory cost subcommand
+		const { getMonthlyCost, getCostBreakdown, getProjectedMonthlyCost } = await import(
+			'../lib/memory/state-manager'
+		);
 
-			if (!existsSync(costPath)) {
-				console.log(
-					`\n${colors.yellow}No cost data yet. Costs are tracked when you use AI features.${colors.reset}\n`
-				);
-				return;
-			}
+		const month = options.month || new Date().toISOString().substring(0, 7);
+		const total = await getMonthlyCost(month);
 
-			const content = await readFile(costPath, 'utf-8');
-			const tracking = JSON.parse(content) as Record<string, number>;
+		console.log(`\n${colors.bold}API Costs for ${month}${colors.reset}`);
+		console.log('='.repeat(30));
+		console.log(`Total: $${total.toFixed(4)}`);
 
-			const month = options.month || new Date().toISOString().substring(0, 7);
-			const total = tracking[`${month}:total`] || 0;
+		if (options.detailed) {
+			const breakdown = await getCostBreakdown(month);
+			const models = Object.keys(breakdown);
 
-			console.log(`\n${colors.bold}API Costs for ${month}${colors.reset}`);
-			console.log('═'.repeat(30));
-			console.log(`Total: $${total.toFixed(4)}`);
-
-			if (options.detailed) {
+			if (models.length > 0) {
 				console.log('\nBreakdown by model:');
-				for (const [key, cost] of Object.entries(tracking)) {
-					if (key.startsWith(month) && !key.includes(':total')) {
-						const model = key.split(':')[1];
-						console.log(`  ${model}: $${cost.toFixed(4)}`);
-					}
+				for (const [model, cost] of Object.entries(breakdown)) {
+					console.log(`  ${model}: $${(cost as number).toFixed(4)}`);
 				}
 			}
-
-			// Projected
-			const today = new Date();
-			const dayOfMonth = today.getDate();
-			const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-			const projected = (total / dayOfMonth) * daysInMonth;
-
-			console.log(`\nProjected monthly: $${projected.toFixed(2)}`);
-			console.log('');
-		} catch (err) {
-			console.error(
-				`${colors.red}Error: ${err instanceof Error ? err.message : err}${colors.reset}`
-			);
 		}
+
+		const projected = await getProjectedMonthlyCost();
+		console.log(`\nProjected monthly: $${projected.toFixed(2)}`);
+		console.log('');
 	});
 
 // ============================================
-// Default Action - Show Help or Chat
+// Default Action - Chat or Help
 // ============================================
 
-program.arguments('[message...]').action(async (message) => {
+program.arguments('[message...]').action(async (message: string[] | undefined) => {
 	if (message && message.length > 0) {
-		// Future: Treat as chat message
-		console.log(`${colors.yellow}Chat functionality coming soon.${colors.reset}`);
-		console.log(`Your message: "${message.join(' ')}"`);
+		const fullMessage = message.join(' ');
+
+		// Check if it's a rating
+		const rating = learningManager.parseExplicitRating(fullMessage);
+		if (rating) {
+			await learningManager.captureRating({
+				id: `rating-${Date.now()}`,
+				timestamp: new Date().toISOString(),
+				rating: rating.rating,
+				source: 'explicit',
+				comment: rating.comment,
+			});
+			console.log(
+				`\n${colors.green}Rated: ${rating.rating}/10${rating.comment ? ` - ${rating.comment}` : ''}${colors.reset}\n`
+			);
+			return;
+		}
+
+		// Otherwise, treat as chat message
+		await chat(fullMessage);
 	} else {
 		program.help();
 	}
+});
+
+// ============================================
+// Error Handling
+// ============================================
+
+program.configureOutput({
+	writeErr: (str) => {
+		// Remove 'error: ' prefix and colorize
+		const message = str.replace(/^error:\s*/i, '');
+		process.stderr.write(`${colors.red}Error: ${message}${colors.reset}`);
+	},
 });
 
 // ============================================

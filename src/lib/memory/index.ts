@@ -1,57 +1,45 @@
 /**
- * Memory System - Main export file
+ * Memory System - Re-exports
  *
- * The Memory System enables Yxhyx to:
- * - Track work sessions with effort-based structure
- * - Capture ratings and generate learnings
- * - Retrieve relevant learnings for context injection
- * - Track check-ins and costs
+ * The memory system provides persistent learning and work tracking.
  */
 
-// Work Management
-export {
-	WorkManager,
-	workManager,
-	createWork,
-	addWorkItem,
-	completeWork,
-	getCurrentWork,
-} from './work-manager';
+// Work tracking
+export { workManager, WorkManager } from './work-manager';
 
-// Learning Management
+// Learning capture and retrieval
 export {
-	LearningManager,
 	learningManager,
-	captureRating,
-	captureExplicitRating,
+	LearningManager,
+	captureLearning,
 	retrieveRelevantLearnings,
-	addLearning,
 } from './learning-manager';
 
-// State Management
+// State management
 export {
-	StateManager,
-	stateManager,
 	getState,
 	setState,
+	initializeState,
 	recordCheckin,
 	getCheckinHistory,
+	getCheckinsForDate,
+	getCheckinStreak,
 	recordCost,
 	getMonthlyCost,
 	getCostBreakdown,
+	getProjectedMonthlyCost,
+	isToday,
+	isYesterday,
+	getWeekStart,
+	type AppState,
+	type CheckinType,
+	type CheckinEntry,
 } from './state-manager';
 
-// Context Injection
+// Context injection
 export {
 	buildEnhancedContext,
-	formatContextForSystemPrompt,
+	buildSystemPrompt,
 	buildMinimalContext,
-	buildCheckinContext,
-	buildResearchContext,
-	type ContextOptions,
-	type EnhancedContext,
+	type TaskType,
 } from './context-injection';
-
-// Re-export schemas
-export * from '../schemas/work';
-export * from '../schemas/learning';

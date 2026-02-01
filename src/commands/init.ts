@@ -24,6 +24,11 @@ import { generateViews } from '../lib/view-generator';
 const execAsync = promisify(exec);
 
 /**
+ * Provider name constants
+ */
+const OPENCODE_PROVIDER_NAME = 'OpenCode';
+
+/**
  * Check if at least one API key is configured
  */
 function hasApiKey(): boolean {
@@ -139,7 +144,7 @@ Add the export to your shell profile (~/.zshrc or ~/.bashrc) and restart your te
 			}
 
 			const isQuick = options.quick;
-			const provider = hasApiKey() ? getConfiguredProvider() : 'OpenCode';
+			const provider = hasApiKey() ? getConfiguredProvider() : OPENCODE_PROVIDER_NAME;
 
 			// Only show welcome if we haven't already (from OpenCode detection)
 			if (hasApiKey()) {

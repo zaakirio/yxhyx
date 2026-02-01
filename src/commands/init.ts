@@ -22,11 +22,51 @@ import { generateViews } from '../lib/view-generator';
 
 const execAsync = promisify(exec);
 
+/**
+ * Check if at least one API key is configured
+ */
+function hasApiKey(): boolean {
+	return !!(
+		process.env.KIMI_API_KEY ||
+		process.env.MOONSHOT_API_KEY ||
+		process.env.OPENROUTER_API_KEY ||
+		process.env.ANTHROPIC_API_KEY
+	);
+}
+
+/**
+ * Get the name of the configured API provider
+ */
+function getConfiguredProvider(): string {
+	if (process.env.ANTHROPIC_API_KEY) return 'Anthropic';
+	if (process.env.OPENROUTER_API_KEY) return 'OpenRouter';
+	if (process.env.KIMI_API_KEY || process.env.MOONSHOT_API_KEY) return 'Kimi/Moonshot';
+	return 'None';
+}
+
 export const initCommand = new Command('init')
 	.description('Initialize Yxhyx - your personal AI assistant')
 	.option('-f, --force', 'Reinitialize even if already initialized')
+	.option('-q, --quick', 'Quick initialization with minimal prompts')
 	.action(async (options) => {
 		try {
+			// Check for API keys first
+			if (!hasApiKey()) {
+				console.log(`
+${colors.red}${colors.bold}Error: No API key configured${colors.reset}
+
+Yxhyx requires at least one AI provider API key to function.
+Please set one of the following environment variables:
+
+  ${colors.cyan}export KIMI_API_KEY="your-key"${colors.reset}       # Recommended - cheapest
+  ${colors.cyan}export OPENROUTER_API_KEY="your-key"${colors.reset} # Access to many models
+  ${colors.cyan}export ANTHROPIC_API_KEY="your-key"${colors.reset}  # Highest quality
+
+Add the export to your shell profile (~/.zshrc or ~/.bashrc) and restart your terminal.
+`);
+				process.exit(1);
+			}
+
 			// Check if already initialized
 			if (await isInitialized()) {
 				if (!options.force) {
@@ -37,8 +77,16 @@ export const initCommand = new Command('init')
 				console.log(warning('\nReinitializing Yxhyx...\n'));
 			}
 
+			const isQuick = options.quick;
+			const provider = getConfiguredProvider();
+
 			console.log(bold('\n Welcome to Yxhyx - Your Personal AI Assistant\n'));
-			console.log("Let's set up your personal context. This will take about 2-3 minutes.\n");
+			console.log(info(`API Provider: ${provider}`));
+			console.log(
+				isQuick
+					? "Quick setup - we'll just need your name and a few interests.\n"
+					: "Let's set up your personal context. This will take about 2-3 minutes.\n"
+			);
 
 			// Define directories
 			const yxhyxDir = getYxhyxDir();
@@ -59,13 +107,50 @@ export const initCommand = new Command('init')
 				await mkdir(dir, { recursive: true });
 			}
 
-			// Gather user information
-			const answers = await inquirer.prompt([
+			// Gather user information - quick mode uses minimal prompts
+			const quickPrompts = [
 				{
 					type: 'input',
 					name: 'name',
 					message: 'What is your name?',
-					validate: (input) => input.trim().length > 0 || 'Name is required',
+					validate: (input: string) => input.trim().length > 0 || 'Name is required',
+				},
+				{
+					type: 'input',
+					name: 'timezone',
+					message: 'What is your timezone?',
+					default: Intl.DateTimeFormat().resolvedOptions().timeZone,
+				},
+				{
+					type: 'checkbox',
+					name: 'interests',
+					message: 'Select your top interests (for content curation):',
+					choices: [
+						'AI/ML',
+						'Security',
+						'Web Development',
+						'Mobile Development',
+						'DevOps/Cloud',
+						'Data Science',
+						'Startups',
+						'Finance/Investing',
+						'Health/Fitness',
+						'Productivity',
+						'Philosophy',
+						'Science',
+						'Design/UX',
+						'Gaming',
+					],
+					validate: (input: string[]) => input.length > 0 || 'Please select at least one interest',
+				},
+			];
+
+			const fullPrompts = [
+				{
+					type: 'input',
+					name: 'name',
+					message: 'What is your name?',
+					validate: (input: string) => input.trim().length > 0 || 'Name is required',
 				},
 				{
 					type: 'input',
@@ -131,25 +216,29 @@ export const initCommand = new Command('init')
 					],
 					default: 'concise',
 				},
-			]);
+			];
+
+			const answers = await inquirer.prompt(isQuick ? quickPrompts : fullPrompts);
 
 			// Create identity
 			const identity = createDefaultIdentity(answers.name.trim(), answers.timezone);
 
-			// Update with user answers
-			identity.about.location = answers.location.trim() || undefined;
-			identity.about.background = answers.background?.trim() || '';
-			identity.mission = answers.mission?.trim() || '';
+			// Update with user answers (quick mode uses defaults for missing fields)
+			if (!isQuick) {
+				identity.about.location = answers.location?.trim() || undefined;
+				identity.about.background = answers.background?.trim() || '';
+				identity.mission = answers.mission?.trim() || '';
 
-			// Set communication preferences
-			identity.preferences.communication.style = answers.communicationStyle as
-				| 'direct'
-				| 'diplomatic'
-				| 'socratic';
-			identity.preferences.communication.length = answers.communicationLength as
-				| 'concise'
-				| 'detailed'
-				| 'adaptive';
+				// Set communication preferences (only in full mode)
+				identity.preferences.communication.style = answers.communicationStyle as
+					| 'direct'
+					| 'diplomatic'
+					| 'socratic';
+				identity.preferences.communication.length = answers.communicationLength as
+					| 'concise'
+					| 'detailed'
+					| 'adaptive';
+			}
 
 			// Distribute interests by priority (first 3 high, next 3 medium, rest low)
 			const interests = answers.interests as string[];

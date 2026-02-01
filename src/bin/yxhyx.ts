@@ -11,12 +11,14 @@ import { Command } from 'commander';
 import { colors } from '../lib/cli/formatting';
 
 import { chat } from '../commands/chat';
+import { checkinCommand } from '../commands/checkin';
 import { identityCommand } from '../commands/identity';
 // Import commands
 import { initCommand } from '../commands/init';
 import { memoryCommand } from '../commands/memory';
 import { newsCommand } from '../commands/news';
 import { skillsCommand } from '../commands/skills';
+import { verifyCommand } from '../commands/verify';
 import { learningManager } from '../lib/memory/learning-manager';
 import { executeSkill, skillRouter } from '../lib/skills';
 
@@ -46,32 +48,26 @@ program.addCommand(newsCommand);
 // Phase 7: Skills Framework
 program.addCommand(skillsCommand);
 
-// Placeholder commands for Phase 3 (coming soon)
+// Phase 3: Check-ins
+program.addCommand(checkinCommand);
+
+// Utility commands
+program.addCommand(verifyCommand);
+
+// Chat command
 program
 	.command('chat [message...]')
 	.description('Chat with Yxhyx')
 	.option('-m, --model <model>', 'Force specific model')
 	.option('-i, --interactive', 'Start interactive session')
-	.action((message, _options) => {
+	.action(async (message, _options) => {
 		if (!message || message.length === 0) {
-			console.log(`${colors.yellow}Chat functionality coming in Phase 3.${colors.reset}`);
-			console.log('For now, try:');
-			console.log(`  ${colors.cyan}yxhyx init${colors.reset} - Initialize Yxhyx`);
-			console.log(`  ${colors.cyan}yxhyx identity show${colors.reset} - View your identity`);
-			console.log(`  ${colors.cyan}yxhyx news${colors.reset} - Get personalized news`);
+			console.log(`\n${colors.cyan}Chat with Yxhyx${colors.reset}`);
+			console.log('Usage: yxhyx chat "your message"');
+			console.log('   or: yxhyx "your message" (shorthand)\n');
 			return;
 		}
-		console.log(
-			`${colors.yellow}Chat with AI coming soon. Your message: "${message.join(' ')}"${colors.reset}`
-		);
-	});
-
-program
-	.command('checkin [type]')
-	.description('Accountability check-ins (morning/evening/weekly)')
-	.option('-q, --quick', 'Quick check-in mode')
-	.action((_type, _options) => {
-		console.log(`${colors.yellow}Check-in functionality coming in Phase 3.${colors.reset}`);
+		await chat(message.join(' '));
 	});
 
 // Phase 4: News & Research (Coming Soon)

@@ -1,0 +1,64 @@
+name: research
+version: "1.0.0"
+description: Multi-source research and information gathering with URL verification
+
+triggers:
+  patterns:
+    - "research"
+    - "look up"
+    - "find out about"
+    - "what do you know about"
+    - "investigate"
+    - "find information"
+  keywords:
+    - research
+    - lookup
+    - investigate
+    - discover
+
+dependencies: []
+
+workflows:
+  quick:
+    description: Fast single-model research for simple questions (10-15 seconds)
+    file: workflows/quick.md
+    triggers:
+      - "quick research"
+      - "quick lookup"
+      - "briefly research"
+    estimated_seconds: 15
+    model_complexity: QUICK
+
+  standard:
+    description: Standard multi-perspective research (default mode)
+    file: workflows/standard.md
+    default: true
+    triggers:
+      - "do research"
+      - "research this"
+    estimated_seconds: 30
+    model_complexity: STANDARD
+
+  deep:
+    description: Extensive parallel research for complex topics
+    file: workflows/deep.md
+    triggers:
+      - "deep research"
+      - "thorough research"
+      - "comprehensive research"
+      - "extensive research"
+    estimated_seconds: 90
+    model_complexity: COMPLEX
+
+config:
+  url_verification: true
+  max_sources: 10
+  timeout_seconds: 60
+
+env:
+  required: []
+  optional:
+    - PERPLEXITY_API_KEY
+
+author: Yxhyx Team
+license: MIT

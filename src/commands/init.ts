@@ -6,7 +6,9 @@
  */
 
 import { exec } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { cp, mkdir, readdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { Command } from 'commander';
 import inquirer from 'inquirer';
@@ -247,6 +249,10 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 `
 			);
 
+			// Copy built-in skills to user skills directory
+			await copyBuiltinSkills(yxhyxDir);
+			console.log(info(' Built-in skills installed'));
+
 			// Print success message
 			console.log(success('\n Yxhyx initialized successfully!\n'));
 			console.log(`${bold('Your identity is stored at:')} ${getIdentityPath()}`);
@@ -270,3 +276,48 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 			process.exit(1);
 		}
 	});
+
+/**
+ * Copy built-in skills to user skills directory
+ */
+async function copyBuiltinSkills(yxhyxDir: string): Promise<void> {
+	// Determine the built-in skills directory
+	// In development: src/skills/
+	// In production: dist/skills/ or bundled
+	const possiblePaths = [
+		join(import.meta.dirname || __dirname, '../skills'),
+		join(import.meta.dirname || __dirname, '../../skills'),
+		join(import.meta.dirname || __dirname, '../../src/skills'),
+	];
+
+	let builtinSkillsDir: string | null = null;
+	for (const p of possiblePaths) {
+		if (existsSync(p)) {
+			builtinSkillsDir = p;
+			break;
+		}
+	}
+
+	if (!builtinSkillsDir) {
+		console.log(warning(' Could not find built-in skills directory'));
+		return;
+	}
+
+	const userSkillsDir = `${yxhyxDir}/skills`;
+
+	try {
+		const skillDirs = await readdir(builtinSkillsDir);
+
+		for (const skillName of skillDirs) {
+			const srcPath = join(builtinSkillsDir, skillName);
+			const destPath = join(userSkillsDir, skillName);
+
+			// Only copy if destination doesn't exist (don't overwrite user customizations)
+			if (!existsSync(destPath)) {
+				await cp(srcPath, destPath, { recursive: true });
+			}
+		}
+	} catch (error) {
+		console.log(warning(` Could not copy built-in skills: ${error}`));
+	}
+}

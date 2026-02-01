@@ -16,7 +16,9 @@ import { identityCommand } from '../commands/identity';
 import { initCommand } from '../commands/init';
 import { memoryCommand } from '../commands/memory';
 import { newsCommand } from '../commands/news';
+import { skillsCommand } from '../commands/skills';
 import { learningManager } from '../lib/memory/learning-manager';
+import { executeSkill, skillRouter } from '../lib/skills';
 
 const program = new Command();
 
@@ -40,6 +42,9 @@ program.addCommand(memoryCommand);
 
 // Phase 4: Research & News
 program.addCommand(newsCommand);
+
+// Phase 7: Skills Framework
+program.addCommand(skillsCommand);
 
 // Placeholder commands for Phase 3 (coming soon)
 program
@@ -189,6 +194,31 @@ program.arguments('[message...]').action(async (message: string[] | undefined) =
 				`\n${colors.green}Rated: ${rating.rating}/10${rating.comment ? ` - ${rating.comment}` : ''}${colors.reset}\n`
 			);
 			return;
+		}
+
+		// Check if a skill matches this input
+		try {
+			const skillMatch = await skillRouter.route(fullMessage, { minConfidence: 0.6 });
+			if (skillMatch) {
+				console.log(
+					`${colors.dim}Using ${skillMatch.skill.definition.name} skill (${skillMatch.workflow} workflow)${colors.reset}\n`
+				);
+				const result = await executeSkill(fullMessage);
+				if (result.success) {
+					console.log(result.output);
+					console.log();
+					console.log(
+						`${colors.dim}---\nSkill: ${result.skill} | Workflow: ${result.workflow} | Model: ${result.model} | Cost: $${result.cost.toFixed(4)}${colors.reset}`
+					);
+				} else {
+					console.error(`${colors.red}Skill error: ${result.error}${colors.reset}`);
+					// Fall back to chat
+					await chat(fullMessage);
+				}
+				return;
+			}
+		} catch {
+			// Skill routing failed, fall back to chat
 		}
 
 		// Otherwise, treat as chat message
